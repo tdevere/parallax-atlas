@@ -30,6 +30,8 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          VITE_BING_MAPS_API_KEY: ${{ secrets.VITE_BING_MAPS_API_KEY }}
 
       - name: Copy static web app config to dist
         run: cp staticwebapp.config.json dist/
