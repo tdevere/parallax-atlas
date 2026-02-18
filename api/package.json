@@ -3,9 +3,17 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "main": "dist/functions/*.js",
   "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "tsc",
+    "prestart": "npm run build"
+  },
   "dependencies": {
     "@azure/cosmos": "^4.2.0",
     "@azure/functions": "^4.6.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3"
   }
 }

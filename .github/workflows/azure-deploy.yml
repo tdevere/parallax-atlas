@@ -31,6 +31,9 @@ jobs:
       - name: Install API dependencies
         run: cd api && npm ci
 
+      - name: Build API
+        run: cd api && npm run build
+
       - name: Build
         run: npm run build
         env:

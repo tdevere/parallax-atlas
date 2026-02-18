@@ -16,6 +16,10 @@
       }
     },
     {
+      "route": "/api/feedback",
+      "allowedRoles": ["anonymous", "authenticated"]
+    },
+    {
       "route": "/api/*",
       "allowedRoles": ["authenticated"]
     }
