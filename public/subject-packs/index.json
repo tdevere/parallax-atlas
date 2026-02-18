@@ -1,0 +1,22 @@
+{
+  "packs": [
+    {
+      "id": "world-history-survey",
+      "name": "World History Survey",
+      "description": "A learner-focused overview from early civilizations to the digital age.",
+      "file": "world-history-survey.json"
+    },
+    {
+      "id": "quantum-physics-survey",
+      "name": "Quantum Physics Survey",
+      "description": "Foundational milestones from Planck to quantum information.",
+      "file": "quantum-physics-survey.json"
+    },
+    {
+      "id": "ai-genesis-history",
+      "name": "AI Genesis",
+      "description": "Recursive drill-down map from formal logic to modern large language models.",
+      "file": "ai-genesis-history.json"
+    }
+  ]
+}

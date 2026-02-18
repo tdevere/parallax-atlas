@@ -1,0 +1,503 @@
+{
+  "id": "world-history-survey",
+  "name": "World History Survey",
+  "description": "Major global developments commonly used in introductory history learning paths.",
+  "context": {
+    "persistence": "memory",
+    "eras": [
+      {
+        "id": "neolithic-revolution",
+        "content": "Neolithic Revolution",
+        "start": 12000,
+        "end": 8000,
+        "group": "Agrarian Civilizations",
+        "description": "Independent transitions to farming and settled life in multiple regions.",
+        "geoCenter": {
+          "latitude": 37.2231,
+          "longitude": 38.9225,
+          "zoom": 6,
+          "heading": 0
+        },
+        "sources": [
+          {
+            "id": "neolithic-wiki",
+            "title": "Neolithic Revolution",
+            "url": "https://en.wikipedia.org/wiki/Neolithic_Revolution",
+            "format": "overview",
+            "domain": "wikipedia.org",
+            "snippet": "Comprehensive overview of the transition from foraging to farming across multiple world regions."
+          },
+          {
+            "id": "neolithic-gobeklitepe",
+            "title": "Göbekli Tepe",
+            "url": "https://en.wikipedia.org/wiki/G%C3%B6bekli_Tepe",
+            "format": "overview",
+            "domain": "wikipedia.org",
+            "snippet": "Pre-agricultural monumental site challenging assumptions about the Neolithic transition."
+          },
+          {
+            "id": "neolithic-diamond",
+            "title": "Guns, Germs, and Steel",
+            "url": "https://en.wikipedia.org/wiki/Guns,_Germs,_and_Steel",
+            "format": "book",
+            "author": "Jared Diamond",
+            "year": 1997,
+            "domain": "wikipedia.org",
+            "snippet": "Influential theory connecting agricultural origins to long-term civilizational trajectories."
+          }
+        ]
+      },
+      {
+        "id": "early-writing-states",
+        "content": "Early Writing & States",
+        "start": 5500,
+        "end": 4200,
+        "group": "Agrarian Civilizations",
+        "description": "Urbanization, writing systems, and early state institutions emerge.",
+        "geoCenter": {
+          "latitude": 31.3228,
+          "longitude": 45.6367,
+          "zoom": 7,
+          "heading": 0
+        },
+        "sources": [
+          {
+            "id": "cuneiform-wiki",
+            "title": "Cuneiform",
+            "url": "https://en.wikipedia.org/wiki/Cuneiform",
+            "format": "overview",
+            "domain": "wikipedia.org",
+            "snippet": "The earliest known writing system, developed in Mesopotamia for record-keeping and literature."
+          },
+          {
+            "id": "uruk-met",
+            "title": "Uruk: The First City",
+            "url": "https://www.metmuseum.org/toah/hd/uruk/hd_uruk.htm",
+            "format": "overview",
+            "domain": "metmuseum.org",
+            "snippet": "Metropolitan Museum overview of the world's first major urban center."
+          },
+          {
+            "id": "writing-schmandt",
+            "title": "How Writing Came About",
+            "url": "https://en.wikipedia.org/wiki/Denise_Schmandt-Besserat",
+            "format": "book",
+            "author": "Denise Schmandt-Besserat",
+            "year": 1996,
+            "domain": "wikipedia.org",
+            "snippet": "Traces writing's evolution from counting tokens to cuneiform script."
+          }
+        ]
+      },
+      {
+        "id": "axial-age-networks",
+        "content": "Axial Age Thought",
+        "start": 2900,
+        "end": 2300,
+        "group": "Classical Networks",
+        "description": "Major philosophical and ethical traditions form across Afro-Eurasia.",
+        "geoCenter": {
+          "latitude": 34,
+          "longitude": 55,
+          "zoom": 4,
+          "heading": 0
+        },
+        "sources": [
+          {
+            "id": "axial-wiki",
+            "title": "Axial Age",
+            "url": "https://en.wikipedia.org/wiki/Axial_Age",
+            "format": "overview",
+            "domain": "wikipedia.org",
+            "snippet": "Karl Jaspers' concept of simultaneous philosophical breakthroughs across civilizations."
+          },
+          {
+            "id": "axial-bellah",
+            "title": "Religion in Human Evolution",
+            "url": "https://en.wikipedia.org/wiki/Religion_in_Human_Evolution",
+            "format": "book",
+            "author": "Robert Bellah",
+            "year": 2011,
+            "domain": "wikipedia.org",
+            "snippet": "Major sociological analysis of axial-age religious and ethical transformations."
+          }
+        ]
+      },
+      {
+        "id": "classical-empires",
+        "content": "Classical Empires",
+        "start": 2300,
+        "end": 1600,
+        "group": "Classical Networks",
+        "description": "Large imperial systems intensify administration, law, and exchange.",
+        "geoCenter": {
+          "latitude": 41.9028,
+          "longitude": 12.4964,
+          "zoom": 5,
+          "heading": 0
+        },
+        "sources": [
+          {
+            "id": "rome-wiki",
+            "title": "Roman Empire",
+            "url": "https://en.wikipedia.org/wiki/Roman_Empire",
+            "format": "overview",
+            "domain": "wikipedia.org",
+            "snippet": "Overview of the largest classical Mediterranean empire and its lasting institutional legacy."
+          },
+          {
+            "id": "han-wiki",
+            "title": "Han Dynasty",
+            "url": "https://en.wikipedia.org/wiki/Han_dynasty",
+            "format": "overview",
+            "domain": "wikipedia.org",
+            "snippet": "The Chinese empire contemporary to Rome, establishing patterns of bureaucratic governance."
+          },
+          {
+            "id": "crash-rome",
+            "title": "Fall of The Roman Empire",
+            "url": "https://www.youtube.com/watch?v=3HLL_Ip1C4I",
+            "format": "video",
+            "author": "CrashCourse",
+            "domain": "youtube.com",
+            "snippet": "Engaging overview of Roman imperial rise, governance, and eventual transformation."
+          }
+        ]
+      },
+      {
+        "id": "interregional-trade",
+        "content": "Interregional Trade Networks",
+        "start": 1800,
+        "end": 600,
+        "group": "Classical Networks",
+        "description": "Silk Roads and Indian Ocean routes spread goods, ideas, and technologies.",
+        "geoCenter": {
+          "latitude": 39.6542,
+          "longitude": 66.9597,
+          "zoom": 5,
+          "heading": 0
+        },
+        "sources": [
+          {
+            "id": "silkroad-wiki",
+            "title": "Silk Road",
+            "url": "https://en.wikipedia.org/wiki/Silk_Road",
+            "format": "overview",
+            "domain": "wikipedia.org",
+            "snippet": "The network of trade routes connecting East Asia, Central Asia, the Middle East, and Europe."
+          },
+          {
+            "id": "silkroad-hansen",
+            "title": "The Silk Road: A New History",
+            "url": "https://en.wikipedia.org/wiki/The_Silk_Road:_A_New_History",
+            "format": "book",
+            "author": "Valerie Hansen",
+            "year": 2012,
+            "domain": "wikipedia.org",
+            "snippet": "Archaeological evidence reshaping understanding of Silk Road exchange patterns."
+          }
+        ]
+      },
+      {
+        "id": "printing-gunpowder-navigation",
+        "content": "Printing, Gunpowder, Navigation",
+        "start": 1100,
+        "end": 450,
+        "group": "Early Modern Transformations",
+        "description": "Technological shifts reshape warfare, literacy, and maritime expansion.",
+        "geoCenter": {
+          "latitude": 34.2658,
+          "longitude": 108.9541,
+          "zoom": 5,
+          "heading": 0
+        },
+        "sources": [
+          {
+            "id": "printing-wiki",
+            "title": "History of Printing in East Asia",
+            "url": "https://en.wikipedia.org/wiki/History_of_printing_in_East_Asia",
+            "format": "overview",
+            "domain": "wikipedia.org",
+            "snippet": "Chinese and Korean innovations in woodblock and movable type printing predating Gutenberg."
+          },
+          {
+            "id": "gunpowder-wiki",
+            "title": "History of Gunpowder",
+            "url": "https://en.wikipedia.org/wiki/History_of_gunpowder",
+            "format": "overview",
+            "domain": "wikipedia.org",
+            "snippet": "From Chinese alchemical experiments to global military transformation."
+          },
+          {
+            "id": "navigation-zheng",
+            "title": "Zheng He",
+            "url": "https://en.wikipedia.org/wiki/Zheng_He",
+            "format": "overview",
+            "domain": "wikipedia.org",
+            "snippet": "Ming dynasty treasure voyages demonstrating early 15th-century maritime reach."
+          }
+        ]
+      },
+      {
+        "id": "scientific-revolution-survey",
+        "content": "Scientific Revolution",
+        "start": 500,
+        "end": 300,
+        "group": "Early Modern Transformations",
+        "description": "Systematic experimentation and mathematical modeling transform natural philosophy.",
+        "geoCenter": {
+          "latitude": 51.5074,
+          "longitude": -0.1278,
+          "zoom": 6,
+          "heading": 0
+        },
+        "sources": [
+          {
+            "id": "scirev-wiki",
+            "title": "Scientific Revolution",
+            "url": "https://en.wikipedia.org/wiki/Scientific_revolution",
+            "format": "overview",
+            "domain": "wikipedia.org",
+            "snippet": "The transformation of European natural philosophy through new methods and institutions."
+          },
+          {
+            "id": "scirev-principia",
+            "title": "Principia Mathematica (Newton)",
+            "url": "https://en.wikipedia.org/wiki/Philosophi%C3%A6_Naturalis_Principia_Mathematica",
+            "format": "overview",
+            "domain": "wikipedia.org",
+            "snippet": "Newton's foundational work establishing classical mechanics and universal gravitation."
+          },
+          {
+            "id": "scirev-shapin",
+            "title": "The Scientific Revolution",
+            "url": "https://en.wikipedia.org/wiki/The_Scientific_Revolution_(book)",
+            "format": "book",
+            "author": "Steven Shapin",
+            "year": 1996,
+            "domain": "wikipedia.org",
+            "snippet": "Concise revisionist history arguing the 'revolution' was more complex than commonly portrayed."
+          }
+        ]
+      },
+      {
+        "id": "atlantic-revolutions",
+        "content": "Atlantic Revolutions",
+        "start": 260,
+        "end": 180,
+        "group": "Industrial & Modern",
+        "description": "Constitutional and anti-colonial revolutions reshape political legitimacy.",
+        "geoCenter": {
+          "latitude": 48.8566,
+          "longitude": 2.3522,
+          "zoom": 5,
+          "heading": 0
+        },
+        "sources": [
+          {
+            "id": "french-rev-wiki",
+            "title": "French Revolution",
+            "url": "https://en.wikipedia.org/wiki/French_Revolution",
+            "format": "overview",
+            "domain": "wikipedia.org",
+            "snippet": "The revolution that redefined sovereignty, citizenship, and rights in the modern world."
+          },
+          {
+            "id": "haitian-rev-wiki",
+            "title": "Haitian Revolution",
+            "url": "https://en.wikipedia.org/wiki/Haitian_Revolution",
+            "format": "overview",
+            "domain": "wikipedia.org",
+            "snippet": "The only successful large-scale slave revolution, creating the first independent Black republic."
+          },
+          {
+            "id": "atlantic-rev-video",
+            "title": "The Atlantic Revolutions",
+            "url": "https://www.youtube.com/watch?v=f3XB9yHNkjg",
+            "format": "video",
+            "author": "CrashCourse",
+            "domain": "youtube.com",
+            "snippet": "Overview of the interconnected revolutionary wave across the Atlantic world."
+          }
+        ]
+      },
+      {
+        "id": "industrial-revolution-survey",
+        "content": "Industrial Revolution",
+        "start": 260,
+        "end": 140,
+        "group": "Industrial & Modern",
+        "description": "Mechanization, fossil energy, and factory systems transform production and society.",
+        "geoCenter": {
+          "latitude": 53.4808,
+          "longitude": -2.2426,
+          "zoom": 8,
+          "heading": 0
+        },
+        "sources": [
+          {
+            "id": "indrev-wiki",
+            "title": "Industrial Revolution",
+            "url": "https://en.wikipedia.org/wiki/Industrial_Revolution",
+            "format": "overview",
+            "domain": "wikipedia.org",
+            "snippet": "The transition to machine manufacturing, new energy sources, and factory organization."
+          },
+          {
+            "id": "indrev-allen",
+            "title": "The British Industrial Revolution in Global Perspective",
+            "url": "https://en.wikipedia.org/wiki/Robert_C._Allen",
+            "format": "book",
+            "author": "Robert C. Allen",
+            "year": 2009,
+            "domain": "wikipedia.org",
+            "snippet": "Economic analysis of why industrialization began in Britain and its global consequences."
+          },
+          {
+            "id": "indrev-crash",
+            "title": "Coal, Steam, and The Industrial Revolution",
+            "url": "https://www.youtube.com/watch?v=zhL5DCizj5c",
+            "format": "video",
+            "author": "CrashCourse",
+            "domain": "youtube.com",
+            "snippet": "Engaging summary of how coal and steam reshaped the British and global economy."
+          }
+        ]
+      },
+      {
+        "id": "world-wars-era",
+        "content": "World Wars Era",
+        "start": 110,
+        "end": 78,
+        "group": "Industrial & Modern",
+        "description": "Global conflicts reshape borders, institutions, and technological trajectories.",
+        "geoCenter": {
+          "latitude": 49.16,
+          "longitude": 5.383,
+          "zoom": 6,
+          "heading": 0
+        },
+        "sources": [
+          {
+            "id": "ww1-wiki",
+            "title": "World War I",
+            "url": "https://en.wikipedia.org/wiki/World_War_I",
+            "format": "overview",
+            "domain": "wikipedia.org",
+            "snippet": "The 'Great War' that destroyed empires and set the stage for the 20th century order."
+          },
+          {
+            "id": "ww2-wiki",
+            "title": "World War II",
+            "url": "https://en.wikipedia.org/wiki/World_War_II",
+            "format": "overview",
+            "domain": "wikipedia.org",
+            "snippet": "The deadliest conflict in human history, reshaping geopolitics and technology."
+          },
+          {
+            "id": "ww-keegan",
+            "title": "The Second World War",
+            "url": "https://en.wikipedia.org/wiki/John_Keegan",
+            "format": "book",
+            "author": "John Keegan",
+            "year": 1989,
+            "domain": "wikipedia.org",
+            "snippet": "Authoritative single-volume military history of the global conflict."
+          }
+        ]
+      },
+      {
+        "id": "decolonization",
+        "content": "Decolonization",
+        "start": 80,
+        "end": 30,
+        "group": "Contemporary Global Era",
+        "description": "Newly independent states and postcolonial orders emerge across the globe.",
+        "geoCenter": {
+          "latitude": 8.7832,
+          "longitude": 34.5085,
+          "zoom": 4,
+          "heading": 0
+        },
+        "sources": [
+          {
+            "id": "decolonization-wiki",
+            "title": "Decolonization",
+            "url": "https://en.wikipedia.org/wiki/Decolonization",
+            "format": "overview",
+            "domain": "wikipedia.org",
+            "snippet": "The global wave of independence movements that dismantled European colonial empires."
+          },
+          {
+            "id": "fanon-wretched",
+            "title": "The Wretched of the Earth",
+            "url": "https://en.wikipedia.org/wiki/The_Wretched_of_the_Earth",
+            "format": "book",
+            "author": "Frantz Fanon",
+            "year": 1961,
+            "domain": "wikipedia.org",
+            "snippet": "Foundational text on colonial violence, liberation psychology, and revolutionary theory."
+          }
+        ]
+      },
+      {
+        "id": "digital-globalization",
+        "content": "Digital Globalization",
+        "start": 40,
+        "end": 0,
+        "group": "Contemporary Global Era",
+        "description": "Networked computing and global information systems reshape economy and culture.",
+        "geoCenter": {
+          "latitude": 37.3861,
+          "longitude": -122.0839,
+          "zoom": 10,
+          "heading": 0
+        },
+        "sources": [
+          {
+            "id": "internet-wiki",
+            "title": "History of the Internet",
+            "url": "https://en.wikipedia.org/wiki/History_of_the_Internet",
+            "format": "overview",
+            "domain": "wikipedia.org",
+            "snippet": "From ARPANET to the World Wide Web and global digital infrastructure."
+          },
+          {
+            "id": "www-berners-lee",
+            "title": "Information Management: A Proposal",
+            "url": "https://www.w3.org/History/1989/proposal.html",
+            "format": "paper",
+            "author": "Tim Berners-Lee",
+            "year": 1989,
+            "domain": "w3.org",
+            "snippet": "The original proposal that led to the creation of the World Wide Web at CERN."
+          },
+          {
+            "id": "globalization-castells",
+            "title": "The Rise of the Network Society",
+            "url": "https://en.wikipedia.org/wiki/The_Information_Age:_Economy,_Society_and_Culture",
+            "format": "book",
+            "author": "Manuel Castells",
+            "year": 1996,
+            "domain": "wikipedia.org",
+            "snippet": "Seminal trilogy analyzing how information technology reshapes social and economic structures."
+          }
+        ]
+      }
+    ],
+    "progress": {
+      "neolithic-revolution": 0,
+      "early-writing-states": 0,
+      "axial-age-networks": 0,
+      "classical-empires": 0,
+      "interregional-trade": 0,
+      "printing-gunpowder-navigation": 0,
+      "scientific-revolution-survey": 0,
+      "atlantic-revolutions": 0,
+      "industrial-revolution-survey": 0,
+      "world-wars-era": 0,
+      "decolonization": 0,
+      "digital-globalization": 0
+    }
+  }
+}

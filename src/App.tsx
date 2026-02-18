@@ -1,0 +1,836 @@
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { AzureMapPanel } from './components/AzureMapPanel'
+import { LessonLauncher } from './components/LessonLauncher'
+import { NotebookPanel } from './components/NotebookPanel'
+import { ProgressSidebar } from './components/ProgressSidebar'
+import { SourcePanel } from './components/SourcePanel'
+import { Timeline } from './components/Timeline'
+import type { Era } from './data/timeline-data'
+import { buildLearnerProfile } from './lesson/learner-profile'
+import type { LessonPlan } from './lesson/lesson-types'
+import { saveLessonPlan } from './lesson/lesson-types'
+import type { NotebookEntry } from './notebook/notebook-types'
+import { NotebookStore, generateEntryId } from './notebook/notebook-store'
+import type { Source } from './sources/source-types'
+import { resolveViewerContext } from './viewer/context'
+import { LocalStorageProgressStore, MemoryProgressStore, NoopProgressStore, type ProgressStore } from './viewer/progress-store'
+import type { GeoCenter, GeoEra, GhostLayerMode, MapSyncMode, RuntimeNotice, SubjectPackEntry, SubgraphSortMode, TimelineViewerConfig, ViewerMode, ZoomBand } from './viewer/types'
+import { viewportSync } from './viewer/viewport-sync'
+
+interface AppProps {
+  config?: TimelineViewerConfig
+  availablePacks?: SubjectPackEntry[]
+  notices?: RuntimeNotice[]
+  bingMapsApiKey?: string
+  onSwitchContext?: (mode: ViewerMode, subjectPackId?: string) => void
+}
+
+interface ReturnTarget {
+  eraId: string
+  zoomBand: ZoomBand
+  zoomLevel: number
+}
+
+const normalizeProgress = (activeEras: Era[], fallback: Record<string, number>, current?: Record<string, number> | null): Record<string, number> =>
+  activeEras.reduce<Record<string, number>>((accumulator, era) => {
+    accumulator[era.id] = current?.[era.id] ?? fallback[era.id] ?? 0
+    return accumulator
+  }, {})
+
+const contextControlValue = (mode: ViewerMode | undefined, contextPackId?: string): string => {
+  if (mode === 'no-context') return 'no-context'
+  if (mode === 'provided-context' && contextPackId) return `provided-context:${contextPackId}`
+  return 'default-context'
+}
+
+const CONTEXT_FLASH_STORAGE_KEY = 'knowledge-timeline-context-flash'
+const MASTERY_INTERACTION_STORAGE_KEY = 'knowledge-timeline-mastery-interactions'
+const MISSION_COMPLETION_STEP = 25
+
+const momentumMessageForAverage = (averageProgress: number): string => {
+  if (averageProgress >= 85) return 'Outstanding momentum. You are in mastery territory.'
+  if (averageProgress >= 60) return 'Strong pace. Keep connecting ideas across eras.'
+  if (averageProgress >= 35) return 'Great traction. Stay consistent for compounding gains.'
+  if (averageProgress > 0) return 'You have started the journey. Keep building your streak.'
+  return 'Pick one era and make a first move today.'
+}
+
+const missionActionForProgress = (value: number): string => {
+  if (value >= 100) return 'Teach this era to someone else using three key points from memory.'
+  if (value >= 75) return 'Do a closed-notes recall: write what happened and why it mattered.'
+  if (value >= 50) return 'Connect this era to one earlier and one later era on the timeline.'
+  if (value >= 25) return 'Summarize the core idea in 4 bullet points and one open question.'
+  if (value > 0) return 'Review the description, then explain it out loud in under 60 seconds.'
+  return 'Read the era description and capture one surprising insight.'
+}
+
+const zoomBandFromEraSpan = (era: Era): ZoomBand => {
+  const span = Math.max(1, era.start - era.end)
+  if (span <= 120) return 'micro'
+  if (span <= 900) return 'modern'
+  if (span <= 8000) return 'historical'
+  if (span <= 5000000) return 'macro'
+  return 'cosmic'
+}
+
+function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwitchContext }: AppProps) {
+  const resolvedContext = useMemo(() => resolveViewerContext(config), [config])
+  const currentMode = config?.mode ?? 'default-context'
+  const currentPackId = new URLSearchParams(window.location.search).get('subjectPack') ?? undefined
+
+  // Spatial / map state
+  const [showMap, setShowMap] = useState(false)
+
+  const progressStore = useMemo<ProgressStore>(() => {
+    if (resolvedContext.persistence === 'local') return new LocalStorageProgressStore(resolvedContext.storageKey)
+    if (resolvedContext.persistence === 'memory') return new MemoryProgressStore()
+    return new NoopProgressStore()
+  }, [resolvedContext.persistence, resolvedContext.storageKey])
+
+  const [progress, setProgress] = useState<Record<string, number>>(() =>
+    normalizeProgress(resolvedContext.eras, resolvedContext.initialProgress, progressStore.load()),
+  )
+
+  const [selectedEra, setSelectedEra] = useState<Era | null>(() => {
+    if (!resolvedContext.initialSelectedEraId) return null
+    return resolvedContext.eras.find((era) => era.id === resolvedContext.initialSelectedEraId) ?? null
+  })
+  const [lastFocusedEraId, setLastFocusedEraId] = useState<string | null>(resolvedContext.initialSelectedEraId)
+  const [hasSeenFocusOnboarding, setHasSeenFocusOnboarding] = useState<boolean>(() => Boolean(resolvedContext.initialSelectedEraId))
+  const [sidebarOpen, setSidebarOpen] = useState(resolvedContext.initialSidebarOpen)
+  const [sidebarCollapsedDesktop, setSidebarCollapsedDesktop] = useState(false)
+  const [coachCollapsed, setCoachCollapsed] = useState(false)
+  const [showSourcePanel, setShowSourcePanel] = useState(false)
+  const [showNotebook, setShowNotebook] = useState(false)
+  const notebookStore = useMemo(() => new NotebookStore(), [])
+  const [notebookEntries, setNotebookEntries] = useState<NotebookEntry[]>(() => notebookStore.load())
+  const [showLessonLauncher, setShowLessonLauncher] = useState(false)
+  const [activeLesson, setActiveLesson] = useState<LessonPlan | null>(null)
+  const [generatedEras, setGeneratedEras] = useState<Era[] | null>(null)
+
+  /** Active eras — generated lesson eras take priority when a lesson is loaded */
+  const activeEras = generatedEras ?? resolvedContext.eras
+  const initialMapCenter = useMemo<GeoCenter>(() => {
+    const geoEras = activeEras.filter((e) => (e as GeoEra).geoCenter)
+    if (geoEras.length === 0) return { latitude: 40, longitude: -95, zoom: 4 }
+    const lats = geoEras.map((e) => (e as GeoEra).geoCenter!.latitude)
+    const lngs = geoEras.map((e) => (e as GeoEra).geoCenter!.longitude)
+    return {
+      latitude: (Math.min(...lats) + Math.max(...lats)) / 2,
+      longitude: (Math.min(...lngs) + Math.max(...lngs)) / 2,
+      zoom: 3,
+    }
+  }, [activeEras])
+  const [mapCenter, setMapCenter] = useState<GeoCenter>(initialMapCenter)
+  const [mapSyncMode, setMapSyncMode] = useState<MapSyncMode>('timeline-leads')
+  const [visibleNotices, setVisibleNotices] = useState<RuntimeNotice[]>(notices)
+  const [contextSwitchFlash, setContextSwitchFlash] = useState<string | null>(null)
+  const [sortMode, setSortMode] = useState<SubgraphSortMode>('chronological')
+  const [ghostLayerMode, setGhostLayerMode] = useState<GhostLayerMode>('prerequisites')
+  const [zoomBand, setZoomBand] = useState<ZoomBand>('cosmic')
+  const [zoomLevel, setZoomLevel] = useState(1)
+  const [returnTarget, setReturnTarget] = useState<ReturnTarget | null>(null)
+  const [lastInteractedAt, setLastInteractedAt] = useState<Record<string, string>>(() => {
+    const stored = window.localStorage.getItem(MASTERY_INTERACTION_STORAGE_KEY)
+    if (!stored) return {}
+
+    try {
+      const parsed = JSON.parse(stored) as Record<string, unknown>
+      return Object.entries(parsed).reduce<Record<string, string>>((accumulator, [key, value]) => {
+        if (typeof value === 'string') accumulator[key] = value
+        return accumulator
+      }, {})
+    } catch {
+      return {}
+    }
+  })
+  const [reviewDueByEra, setReviewDueByEra] = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
+    setVisibleNotices(notices)
+  }, [notices])
+
+  useEffect(() => {
+    if (Object.keys(progress).length > 0) {
+      progressStore.save(progress)
+    }
+  }, [progress, progressStore])
+
+  useEffect(() => {
+    window.localStorage.setItem(MASTERY_INTERACTION_STORAGE_KEY, JSON.stringify(lastInteractedAt))
+  }, [lastInteractedAt])
+
+  useEffect(() => {
+    const now = Date.now()
+    const nextReviewState = Object.entries(lastInteractedAt).reduce<Record<string, boolean>>((accumulator, [eraId, timestamp]) => {
+      const ageMs = now - new Date(timestamp).getTime()
+      accumulator[eraId] = ageMs > 3 * 24 * 60 * 60 * 1000
+      return accumulator
+    }, {})
+
+    setReviewDueByEra(nextReviewState)
+  }, [lastInteractedAt])
+
+  useEffect(() => {
+    const flash = window.sessionStorage.getItem(CONTEXT_FLASH_STORAGE_KEY)
+    if (!flash) return
+
+    setContextSwitchFlash(flash)
+    window.sessionStorage.removeItem(CONTEXT_FLASH_STORAGE_KEY)
+
+    const timeoutId = window.setTimeout(() => setContextSwitchFlash(null), 2600)
+    return () => window.clearTimeout(timeoutId)
+  }, [])
+
+  // Subscribe to viewport sync updates from map interactions
+  useEffect(() => {
+    const unsubscribe = viewportSync.subscribe((state) => {
+      setMapCenter(state.mapCenter)
+    })
+    return unsubscribe
+  }, [])
+
+  // Sync map sync mode to controller
+  useEffect(() => {
+    viewportSync.setSyncMode(mapSyncMode)
+  }, [mapSyncMode])
+
+  const handleMissionComplete = (eraId: string) => {
+    const currentValue = progress[eraId] ?? 0
+    const nextValue = Math.min(100, currentValue + MISSION_COMPLETION_STEP)
+
+    setProgress((current) => ({ ...current, [eraId]: nextValue }))
+
+    setLastInteractedAt((current) => ({
+      ...current,
+      [eraId]: new Date().toISOString(),
+    }))
+
+    // Log mission completion to notebook
+    const era = resolvedContext.eras.find((e) => e.id === eraId)
+    if (era) {
+      logNotebookEntry({
+        eraId: era.id,
+        eraContent: era.content,
+        eraGroup: era.group,
+        action: 'completed-mission',
+        progressAtTime: nextValue,
+      })
+    }
+  }
+
+  const handleExport = () => {
+    const blob = new Blob([JSON.stringify(progress, null, 2)], { type: 'application/json' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'parallax-atlas-progress.json'
+    link.click()
+    URL.revokeObjectURL(link.href)
+  }
+
+  const logNotebookEntry = useCallback(
+    (entry: Omit<NotebookEntry, 'id' | 'timestamp'>) => {
+      const full: NotebookEntry = { ...entry, id: generateEntryId(), timestamp: new Date().toISOString() }
+      const updated = notebookStore.append(full)
+      setNotebookEntries(updated)
+    },
+    [notebookStore],
+  )
+
+  const handleLogSource = useCallback(
+    (source: Source) => {
+      if (!selectedEra) return
+      logNotebookEntry({
+        eraId: selectedEra.id,
+        eraContent: selectedEra.content,
+        eraGroup: selectedEra.group,
+        sourceId: source.id,
+        sourceTitle: source.title,
+        sourceUrl: source.url,
+        sourceFormat: source.format,
+        action: 'logged-source',
+        progressAtTime: progress[selectedEra.id] ?? 0,
+      })
+    },
+    [logNotebookEntry, progress, selectedEra],
+  )
+
+  const handleClearNotebook = useCallback(() => {
+    notebookStore.clear()
+    setNotebookEntries([])
+  }, [notebookStore])
+
+  /** Soft context switch — inject a generated lesson without page reload */
+  const handleLessonReady = useCallback((lesson: LessonPlan) => {
+    // Save lesson for resumability
+    saveLessonPlan(lesson)
+
+    const packEras = lesson.pack.context.eras ?? []
+    const packProgress = lesson.pack.context.eras?.reduce<Record<string, number>>((acc, era) => {
+      acc[era.id] = lesson.pack.context.progress?.[era.id] ?? 0
+      return acc
+    }, {}) ?? {}
+
+    // Soft-swap: update eras, progress, selection, and clear focus state
+    setGeneratedEras(packEras)
+    setProgress(packProgress)
+    setSelectedEra(null)
+    setActiveLesson(lesson)
+    setShowLessonLauncher(false)
+    setShowSourcePanel(false)
+    setReturnTarget(null)
+
+    // Flash notice
+    setContextSwitchFlash(`Loaded lesson: ${lesson.title} (${lesson.level})`)
+    const timeoutId = window.setTimeout(() => setContextSwitchFlash(null), 3000)
+    return () => window.clearTimeout(timeoutId)
+  }, [])
+
+  /** Exit generated lesson and return to previous context */
+  const handleExitLesson = useCallback(() => {
+    setGeneratedEras(null)
+    setActiveLesson(null)
+    setSelectedEra(null)
+    setProgress(normalizeProgress(resolvedContext.eras, resolvedContext.initialProgress, progressStore.load()))
+    setContextSwitchFlash('Returned to previous context')
+    const timeoutId = window.setTimeout(() => setContextSwitchFlash(null), 2600)
+    return () => window.clearTimeout(timeoutId)
+  }, [progressStore, resolvedContext.eras, resolvedContext.initialProgress])
+
+  /** Build learner profile from current notebook + progress */
+  const learnerProfile = useMemo(
+    () => buildLearnerProfile(notebookEntries, progress),
+    [notebookEntries, progress],
+  )
+
+  const handleAddInsight = useCallback(
+    (entry: Omit<NotebookEntry, 'id' | 'timestamp'>) => {
+      logNotebookEntry(entry)
+    },
+    [logNotebookEntry],
+  )
+
+  const groupEras = useMemo(() => {
+    if (!selectedEra) return []
+    return activeEras
+      .filter((era) => era.group === selectedEra.group)
+      .sort((left, right) => right.start - left.start)
+  }, [activeEras, selectedEra])
+
+  const focusIndex = useMemo(() => {
+    if (!selectedEra) return -1
+    return groupEras.findIndex((era) => era.id === selectedEra.id)
+  }, [groupEras, selectedEra])
+
+  const hasPreviousFocusedEra = focusIndex > 0
+  const hasNextFocusedEra = focusIndex >= 0 && focusIndex < groupEras.length - 1
+
+  const focusEdgeMessage = useMemo(() => {
+    if (!selectedEra || focusIndex < 0) return ''
+    if (!hasPreviousFocusedEra && !hasNextFocusedEra) return 'Only one era exists in this focused group.'
+    if (!hasPreviousFocusedEra) return 'You are at the start of this focused group.'
+    if (!hasNextFocusedEra) return 'You are at the end of this focused group.'
+    return ''
+  }, [focusIndex, hasNextFocusedEra, hasPreviousFocusedEra, selectedEra])
+
+  const timelineEras = useMemo(() => {
+    if (!selectedEra) return activeEras
+    return groupEras
+  }, [groupEras, activeEras, selectedEra])
+
+  const selectedContextControl = contextControlValue(currentMode, currentPackId)
+  const activePackName =
+    currentMode === 'provided-context' && currentPackId ? availablePacks.find((pack) => pack.id === currentPackId)?.name ?? currentPackId : 'Built-in'
+  const activeModeLabel =
+    currentMode === 'default-context' ? 'Default' : currentMode === 'no-context' ? 'No Context' : 'Provided Context'
+
+  const momentumStats = useMemo(() => {
+    const values = activeEras.map((era) => progress[era.id] ?? 0)
+    const total = values.length
+    const started = values.filter((value) => value > 0).length
+    const strong = values.filter((value) => value >= 50).length
+    const mastered = values.filter((value) => value >= 100).length
+    const average = total === 0 ? 0 : Math.round(values.reduce((sum, value) => sum + value, 0) / total)
+
+    return {
+      average,
+      mastered,
+      message: momentumMessageForAverage(average),
+      started,
+      strong,
+      total,
+    }
+  }, [progress, activeEras])
+
+  const recommendedEra = useMemo(() => {
+    const candidates = activeEras.filter((era) => (progress[era.id] ?? 0) < 100)
+    if (candidates.length === 0) return null
+
+    return [...candidates].sort((left, right) => {
+      const leftProgress = progress[left.id] ?? 0
+      const rightProgress = progress[right.id] ?? 0
+      if (leftProgress !== rightProgress) return leftProgress - rightProgress
+      return right.start - left.start
+    })[0]
+  }, [progress, activeEras])
+
+  const lastFocusedEra = useMemo(() => {
+    if (!lastFocusedEraId) return null
+    return activeEras.find((era) => era.id === lastFocusedEraId) ?? null
+  }, [lastFocusedEraId, activeEras])
+
+  const missionTargetEra = selectedEra ?? recommendedEra ?? activeEras[0] ?? null
+  const missionTargetProgress = missionTargetEra ? progress[missionTargetEra.id] ?? 0 : 0
+  const missionNextAction = missionActionForProgress(missionTargetProgress)
+  const missionHeadline = selectedEra
+    ? `You're currently focused on ${selectedEra.content}.`
+    : missionTargetEra
+      ? `Recommended now: ${missionTargetEra.content}.`
+      : 'No eras available in this context.'
+
+  const drillContextLabel = selectedEra ? `Drill t0: ${selectedEra.content}` : null
+
+  const queueContextSwitchFlash = (nextMode: ViewerMode, nextPackId?: string) => {
+    const nextPackName =
+      nextMode === 'provided-context' && nextPackId
+        ? availablePacks.find((pack) => pack.id === nextPackId)?.name ?? nextPackId
+        : 'Built-in'
+
+    const nextModeLabel = nextMode === 'default-context' ? 'Default' : nextMode === 'no-context' ? 'No Context' : 'Provided Context'
+    window.sessionStorage.setItem(CONTEXT_FLASH_STORAGE_KEY, `Switched to ${nextModeLabel} · ${nextPackName}`)
+  }
+
+  const handleContextChange = (value: string) => {
+    if (value === 'default-context') {
+      queueContextSwitchFlash('default-context')
+      onSwitchContext?.('default-context')
+      return
+    }
+
+    if (value === 'no-context') {
+      queueContextSwitchFlash('no-context')
+      onSwitchContext?.('no-context')
+      return
+    }
+
+    const [mode, packId] = value.split(':')
+    if (mode === 'provided-context' && packId) {
+      queueContextSwitchFlash('provided-context', packId)
+      onSwitchContext?.('provided-context', packId)
+    }
+  }
+
+  const handleSelectEra = useCallback((era: Era) => {
+    setSelectedEra(era)
+    setLastFocusedEraId(era.id)
+    setHasSeenFocusOnboarding(true)
+    setZoomBand(zoomBandFromEraSpan(era))
+
+    // Auto-log era exploration to notebook
+    logNotebookEntry({
+      eraId: era.id,
+      eraContent: era.content,
+      eraGroup: era.group,
+      action: 'explored-era',
+      progressAtTime: progress[era.id] ?? 0,
+    })
+
+    // Trigger map fly-to if era has geo data
+    viewportSync.onEraSelected(era as GeoEra)
+  }, [logNotebookEntry, progress])
+
+  const handleJumpToContext = (targetEra: Era) => {
+    if (selectedEra && selectedEra.id !== targetEra.id) {
+      setReturnTarget({
+        eraId: selectedEra.id,
+        zoomBand,
+        zoomLevel,
+      })
+    }
+
+    handleSelectEra(targetEra)
+  }
+
+  const handleReturnToOrigin = () => {
+    if (!returnTarget) return
+    const originEra = activeEras.find((era) => era.id === returnTarget.eraId)
+    if (!originEra) {
+      setReturnTarget(null)
+      return
+    }
+
+    handleSelectEra(originEra)
+    setZoomBand(returnTarget.zoomBand)
+    setZoomLevel(returnTarget.zoomLevel)
+    setReturnTarget(null)
+  }
+
+  const handleExitFocus = () => {
+    setSelectedEra(null)
+  }
+
+  const handleNavigateFocusedEra = (direction: 'previous' | 'next') => {
+    if (focusIndex < 0) return
+    const targetIndex = direction === 'previous' ? focusIndex - 1 : focusIndex + 1
+    const targetEra = groupEras[targetIndex]
+    if (!targetEra) return
+    setSelectedEra(targetEra)
+    setLastFocusedEraId(targetEra.id)
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <header className="border-b border-slate-800 px-4 py-2">
+        <div className="mx-auto flex w-full max-w-7xl items-center gap-3">
+          <h1 className="shrink-0 text-lg font-semibold tracking-tight">Parallax Atlas</h1>
+          <div className="flex flex-1 flex-wrap items-center justify-end gap-1.5 text-xs">
+            <span aria-label="Active context summary" className="hidden rounded-full border border-slate-700 bg-slate-900 px-2 py-0.5 text-[11px] text-slate-300 sm:inline-flex">
+              {activeLesson ? `📝 ${activeLesson.title}` : `${activeModeLabel} · ${activePackName}`}
+            </span>
+            {activeLesson && (
+              <button
+                className="rounded border border-rose-600/60 px-2 py-0.5 text-xs text-rose-300 hover:bg-rose-950/30"
+                onClick={handleExitLesson}
+                type="button"
+              >
+                Exit Lesson
+              </button>
+            )}
+            <button
+              aria-label="Start learning a new subject"
+              className="rounded border border-emerald-600 bg-emerald-900/30 px-2 py-0.5 text-xs font-medium text-emerald-200 hover:bg-emerald-800/40"
+              onClick={() => setShowLessonLauncher(true)}
+              type="button"
+            >
+              🚀 Start Learning
+            </button>
+            {availablePacks.length === 0 && <span className="hidden text-[11px] text-amber-300 md:inline">No subject packs available</span>}
+            <select
+              aria-label="Context selector"
+              className="max-w-36 rounded border border-slate-700 bg-slate-900 px-2 py-0.5 text-xs text-slate-100 sm:max-w-52"
+              id="context-selector"
+              onChange={(event) => handleContextChange(event.target.value)}
+              value={selectedContextControl}
+            >
+              <option value="default-context">Built-in default</option>
+              <option value="no-context">No prior context</option>
+              {availablePacks.map((pack) => (
+                <option key={pack.id} value={`provided-context:${pack.id}`}>
+                  {pack.name}
+                </option>
+              ))}
+            </select>
+            {bingMapsApiKey && (
+              <button
+                aria-label={showMap ? 'Hide spatial map' : 'Show spatial map'}
+                className={`rounded border px-2 py-0.5 text-xs transition ${showMap ? 'border-blue-500 bg-blue-900/50 text-blue-200' : 'border-slate-600 bg-slate-800 text-slate-300 hover:border-blue-500'}`}
+                onClick={() => setShowMap((current) => !current)}
+                type="button"
+              >
+                {showMap ? '🗺️ Hide Map' : '🗺️ Show Map'}
+              </button>
+            )}
+            <button
+              aria-label={showNotebook ? 'Hide notebook' : 'Show notebook'}
+              className={`rounded border px-2 py-0.5 text-xs transition ${showNotebook ? 'border-amber-500 bg-amber-900/50 text-amber-200' : 'border-slate-600 bg-slate-800 text-slate-300 hover:border-amber-500'}`}
+              onClick={() => setShowNotebook((current) => !current)}
+              type="button"
+            >
+              📓 Notebook{notebookEntries.length > 0 ? ` (${notebookEntries.length})` : ''}
+            </button>
+            <button className="rounded border border-slate-600 px-2 py-0.5 text-xs md:hidden" onClick={() => setSidebarOpen((current) => !current)} type="button">
+              {sidebarOpen ? 'Hide Controls' : 'Show Controls'}
+            </button>
+          </div>
+        </div>
+      </header>
+      <section aria-label="Today's mission" className="border-b border-cyan-900/40 bg-gradient-to-r from-slate-950 via-cyan-950/40 to-slate-950 px-4">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between py-2">
+          <button
+            aria-expanded={!coachCollapsed}
+            aria-label={coachCollapsed ? 'Expand coach panel' : 'Minimize coach panel'}
+            className="flex items-center gap-2 text-xs uppercase tracking-wide text-cyan-300 hover:text-cyan-100 transition-colors"
+            onClick={() => setCoachCollapsed((c) => !c)}
+            type="button"
+          >
+            <span className={`inline-block transition-transform duration-200 ${coachCollapsed ? '-rotate-90' : 'rotate-0'}`}>▼</span>
+            Coach Mode{coachCollapsed && <span className="normal-case text-slate-400"> — {missionTargetEra?.content ?? 'No target'} · Avg {momentumStats.average}%</span>}
+          </button>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="rounded-full border border-cyan-800/80 bg-cyan-950/50 px-3 py-1 text-cyan-100">Started {momentumStats.started}/{momentumStats.total}</span>
+            <span className="rounded-full border border-emerald-800/80 bg-emerald-950/40 px-3 py-1 text-emerald-100">Strong {momentumStats.strong}</span>
+            <span className="rounded-full border border-amber-700/80 bg-amber-950/35 px-3 py-1 text-amber-100">Mastered {momentumStats.mastered}</span>
+            <span className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-slate-100">Avg {momentumStats.average}%</span>
+          </div>
+        </div>
+        {!coachCollapsed && (
+          <div className="mx-auto grid w-full max-w-7xl gap-4 pb-4 lg:grid-cols-[1.4fr_1fr]">
+            <div>
+              <h2 className="text-xl font-semibold text-cyan-100">Today's Mission</h2>
+              <p className="mt-1 text-sm text-slate-100">{missionHeadline}</p>
+              {missionTargetEra?.description && <p className="mt-2 text-sm text-slate-300">Why this matters: {missionTargetEra.description}</p>}
+              <p aria-live="polite" className="mt-2 text-sm text-cyan-100">
+                Next 10-minute action: {missionNextAction}
+              </p>
+              <p className="mt-1 text-xs text-slate-400">{momentumStats.message}</p>
+              {missionTargetEra && missionTargetEra.id !== selectedEra?.id && (
+                <button
+                  aria-label={`Focus mission era ${missionTargetEra.content}`}
+                  className="mt-3 rounded border border-cyan-600 bg-cyan-900/30 px-3 py-1.5 text-sm font-semibold text-cyan-100 hover:bg-cyan-800/35"
+                  onClick={() => handleSelectEra(missionTargetEra)}
+                  type="button"
+                >
+                  Focus Recommended Era
+                </button>
+              )}
+              {!selectedEra && lastFocusedEra && (
+                <button
+                  aria-label={`Resume focus on ${lastFocusedEra.content}`}
+                  className="ml-2 mt-3 rounded border border-slate-600 px-3 py-1.5 text-sm font-semibold text-slate-200 hover:bg-slate-800"
+                  onClick={() => handleSelectEra(lastFocusedEra)}
+                  type="button"
+                >
+                  Resume Last Focus
+                </button>
+              )}
+              {missionTargetEra && missionTargetEra.id === selectedEra?.id && (
+                <span className="mt-3 inline-flex rounded border border-emerald-700 bg-emerald-950/35 px-3 py-1 text-sm text-emerald-200">Mission in Focus</span>
+              )}
+            </div>
+          </div>
+        )}
+      </section>
+      {contextSwitchFlash && (
+        <div className="px-4 pt-2">
+          <div className="mx-auto max-w-6xl rounded border border-cyan-800/70 bg-cyan-950/35 px-3 py-2 text-sm text-cyan-100" role="status">
+            {contextSwitchFlash}
+          </div>
+        </div>
+      )}
+      {visibleNotices.length > 0 && (
+        <div className="px-4 pb-1 pt-3">
+          <div className="mx-auto max-w-5xl space-y-2">
+            {visibleNotices.map((notice, index) => {
+              const noticeTone =
+                notice.level === 'error'
+                  ? {
+                      badgeClassName: 'bg-rose-500/20 text-rose-200',
+                      panelClassName: 'border-rose-800/80 bg-rose-950/40 text-rose-100',
+                    }
+                  : {
+                      badgeClassName: 'bg-amber-500/20 text-amber-200',
+                      panelClassName: 'border-amber-800/80 bg-amber-950/35 text-amber-100',
+                    }
+
+              return (
+                <div
+                  className={`flex items-start justify-between gap-3 rounded border px-3 py-2 text-sm shadow-sm ${noticeTone.panelClassName}`}
+                  key={`${notice.level}-${notice.message}-${index}`}
+                  role="alert"
+                >
+                  <p className="pr-2">
+                    <span className={`mr-2 inline-flex rounded px-1.5 py-0.5 text-xs font-medium ${noticeTone.badgeClassName}`}>
+                      {notice.level === 'error' ? 'Error' : 'Warning'}
+                    </span>
+                    {notice.message}
+                  </p>
+                  <button
+                    aria-label={`Dismiss ${notice.level} notice`}
+                    className="rounded border border-current/35 px-2 py-0.5 text-xs hover:bg-black/20"
+                    onClick={() => {
+                      setVisibleNotices((current) => current.filter((_, currentIndex) => currentIndex !== index))
+                    }}
+                    type="button"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+      <div className="flex items-center justify-between border-b border-slate-800/60 px-4 py-1.5 text-xs">
+        <div className="flex flex-wrap items-center gap-2">
+          {selectedEra ? (
+            <>
+              <span className="rounded bg-slate-900 px-2 py-0.5 text-slate-300">Breadcrumb: Full Timeline / {selectedEra.group} / {selectedEra.content}</span>
+              <span className="text-slate-500">{focusIndex + 1}/{groupEras.length}</span>
+              <button
+                className={`rounded border border-slate-600 px-2 py-0.5 ${hasPreviousFocusedEra ? 'hover:bg-slate-800' : 'cursor-not-allowed opacity-50'}`}
+                disabled={!hasPreviousFocusedEra}
+                onClick={() => handleNavigateFocusedEra('previous')}
+                type="button"
+              >
+                ◀ Prev
+              </button>
+              <button
+                className={`rounded border border-slate-600 px-2 py-0.5 ${hasNextFocusedEra ? 'hover:bg-slate-800' : 'cursor-not-allowed opacity-50'}`}
+                disabled={!hasNextFocusedEra}
+                onClick={() => handleNavigateFocusedEra('next')}
+                type="button"
+              >
+                Next ▶
+              </button>
+              <button className="rounded border border-cyan-700 px-2 py-0.5 text-cyan-300 hover:bg-slate-800" onClick={handleExitFocus} type="button">
+                Back to Full Timeline
+              </button>
+              {selectedEra.sources && selectedEra.sources.length > 0 && (
+                <button
+                  aria-label={showSourcePanel ? 'Hide sources' : 'Show sources'}
+                  className={`rounded border px-2 py-0.5 transition ${showSourcePanel ? 'border-amber-500 bg-amber-900/40 text-amber-200' : 'border-slate-600 text-slate-300 hover:border-amber-500 hover:text-amber-200'}`}
+                  onClick={() => setShowSourcePanel((current) => !current)}
+                  type="button"
+                >
+                  📚 Sources ({selectedEra.sources.length})
+                </button>
+              )}
+              {recommendedEra && selectedEra.id !== recommendedEra.id && (
+                <button
+                  aria-label={`Go to recommended era ${recommendedEra.content}`}
+                  className="rounded border border-emerald-700 px-2 py-0.5 text-emerald-300 hover:bg-emerald-950/30"
+                  onClick={() => handleSelectEra(recommendedEra)}
+                  type="button"
+                >
+                  Go to Recommended Era
+                </button>
+              )}
+              {focusEdgeMessage && <span className="text-slate-500">{focusEdgeMessage}</span>}
+            </>
+          ) : !hasSeenFocusOnboarding ? (
+            <div className="flex items-center gap-3 text-cyan-200/80">
+              <p>Tip: Select an era on the timeline to enter focus mode and navigate nearby eras.</p>
+              <button
+                className="shrink-0 rounded border border-cyan-700 px-2 py-0.5 text-cyan-200 hover:bg-cyan-900/30"
+                onClick={() => setHasSeenFocusOnboarding(true)}
+                type="button"
+              >
+                Dismiss
+              </button>
+            </div>
+          ) : (
+            <span className="text-slate-600">Click a timeline era to focus</span>
+          )}
+        </div>
+        <div className="hidden flex-wrap items-center gap-1.5 text-[11px] md:flex">
+          <select
+            aria-label="Subgraph sort mode"
+            className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-slate-100"
+            onChange={(event) => setSortMode(event.target.value as SubgraphSortMode)}
+            value={sortMode}
+          >
+            <option value="chronological">Chronological</option>
+            <option value="prerequisite-order">Prereq Order</option>
+          </select>
+          <label className="inline-flex items-center gap-1 text-slate-300" htmlFor="ghost-layer-toggle">
+            <input
+              checked={ghostLayerMode === 'prerequisites'}
+              id="ghost-layer-toggle"
+              onChange={(event) => setGhostLayerMode(event.target.checked ? 'prerequisites' : 'off')}
+              type="checkbox"
+            />
+            Ghost
+          </label>
+          <span aria-label="Zoom band status" className="rounded-full border border-slate-700 px-2 py-0.5 text-slate-400">
+            {zoomBand} · L{zoomLevel.toFixed(1)}
+          </span>
+          {drillContextLabel && (
+            <span aria-label="Drill context chip" className="rounded-full border border-cyan-700/80 bg-cyan-950/35 px-2 py-0.5 text-cyan-100">
+              {drillContextLabel}
+            </span>
+          )}
+          {returnTarget && (
+            <button
+              aria-label={`Return to ${activeEras.find((era) => era.id === returnTarget.eraId)?.content ?? 'origin'}`}
+              className="rounded-full border border-violet-500/90 bg-violet-900/35 px-2 py-0.5 font-semibold text-violet-100 hover:bg-violet-800/45"
+              onClick={handleReturnToOrigin}
+              type="button"
+            >
+              ↩ {activeEras.find((era) => era.id === returnTarget.eraId)?.content ?? 'Origin'}
+            </button>
+          )}
+        </div>
+      </div>
+      {showSourcePanel && selectedEra && (
+        <SourcePanel
+          era={selectedEra}
+          onClose={() => setShowSourcePanel(false)}
+          onLogSource={handleLogSource}
+          progress={progress[selectedEra.id] ?? 0}
+        />
+      )}
+      <div className="flex flex-1 overflow-hidden">
+        <ProgressSidebar
+          eras={timelineEras}
+          isCollapsedDesktop={sidebarCollapsedDesktop}
+          isOpen={sidebarOpen}
+          onCompleteTask={handleMissionComplete}
+          onCollapseDesktop={() => setSidebarCollapsedDesktop(true)}
+          onExpandDesktop={() => setSidebarCollapsedDesktop(false)}
+          onFocusEra={handleSelectEra}
+          onExport={handleExport}
+          reviewDueByEra={reviewDueByEra}
+          progress={progress}
+          selectedEraId={selectedEra?.id}
+          sortMode={sortMode}
+        />
+        <div className={`flex min-w-0 flex-1 ${showMap ? 'flex-col lg:flex-row' : ''}`}>
+          <div className={showMap ? 'min-h-[40vh] flex-1 lg:min-h-0 lg:w-1/2' : 'flex-1'}>
+            <Timeline
+              allEras={activeEras}
+              eras={timelineEras}
+              focusEra={selectedEra}
+              ghostLayerMode={ghostLayerMode}
+              reviewDueByEra={reviewDueByEra}
+              onCompleteTask={handleMissionComplete}
+              onJumpToContext={handleJumpToContext}
+              zoomBand={zoomBand}
+              onZoomLevelChange={(nextZoomLevel: number, nextBand: ZoomBand) => {
+                setZoomLevel(nextZoomLevel)
+                setZoomBand(nextBand)
+              }}
+              onSelectEra={handleSelectEra}
+              progress={progress}
+            />
+          </div>
+          {showMap && bingMapsApiKey && (
+            <div className="min-h-[40vh] flex-1 border-l border-slate-800 lg:min-h-0 lg:w-1/2">
+              <AzureMapPanel
+                apiKey={bingMapsApiKey}
+                center={mapCenter}
+                eras={activeEras as GeoEra[]}
+                onEraSelect={(eraId) => {
+                  const era = activeEras.find((e) => e.id === eraId)
+                  if (era) handleSelectEra(era)
+                }}
+                onMapMove={(center) => viewportSync.onMapViewChange(center)}
+                onSyncModeChange={setMapSyncMode}
+                selectedEraId={selectedEra?.id}
+                syncMode={mapSyncMode}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+      {showNotebook && (
+        <NotebookPanel
+          availableEras={activeEras.map((e) => ({ id: e.id, content: e.content, group: e.group }))}
+          currentEraId={selectedEra?.id}
+          entries={notebookEntries}
+          onAddInsight={handleAddInsight}
+          onClear={handleClearNotebook}
+          onClose={() => setShowNotebook(false)}
+        />
+      )}
+      {showLessonLauncher && (
+        <LessonLauncher
+          learnerProfile={learnerProfile}
+          onClose={() => setShowLessonLauncher(false)}
+          onLessonReady={handleLessonReady}
+        />
+      )}
+    </div>
+  )
+}
+
+export default App

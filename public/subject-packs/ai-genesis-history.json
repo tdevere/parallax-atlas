@@ -1,0 +1,245 @@
+{
+  "id": "ai-genesis-history",
+  "name": "AI Genesis",
+  "description": "A high-density recursive map from formal logic foundations to modern large language models.",
+  "context": {
+    "persistence": "memory",
+    "eras": [
+      {
+        "id": "formal-logic",
+        "content": "Formal Logic",
+        "start": 1500,
+        "end": 0,
+        "group": "Computation Track",
+        "description": "Symbolic reasoning traditions that shaped computability and proof systems.",
+        "geoCenter": { "latitude": 37.9838, "longitude": 23.7275, "zoom": 10, "heading": 0 },
+        "sources": [
+          { "id": "aristotle-organon", "title": "Organon (Aristotle)", "url": "https://en.wikipedia.org/wiki/Organon", "format": "overview", "domain": "wikipedia.org", "snippet": "Aristotle's foundational works on logic, deduction, and categorical reasoning." },
+          { "id": "frege-begriffsschrift", "title": "Begriffsschrift", "url": "https://en.wikipedia.org/wiki/Begriffsschrift", "format": "overview", "author": "Gottlob Frege", "year": 1879, "domain": "wikipedia.org", "snippet": "The first formal system of predicate logic, enabling mathematical proof formalization." },
+          { "id": "godel-incompleteness", "title": "G\u00f6del's Incompleteness Theorems", "url": "https://plato.stanford.edu/entries/goedel-incompleteness/", "format": "overview", "domain": "plato.stanford.edu", "snippet": "Proved fundamental limits of formal systems, shaping computability theory." }
+        ],
+        "payload": {
+          "taskType": "active-recall",
+          "missionTitle": "Recall Foundations",
+          "prompt": "State one core principle of formal logic and explain why it was necessary before programmable AI.",
+          "completionEvidenceHint": "Write one complete sentence linking logic to computability."
+        }
+      },
+      {
+        "id": "twentieth-century-ai",
+        "content": "20th Century Foundations",
+        "start": 130,
+        "end": 25,
+        "group": "AI Timeline",
+        "description": "The long runway from theoretical computability to networked machine intelligence.",
+        "prerequisiteIds": ["formal-logic"],
+        "zoomBand": "modern",
+        "geoCenter": { "latitude": 52.2053, "longitude": 0.1218, "zoom": 10, "heading": 0 },
+        "sources": [
+          { "id": "turing-1950", "title": "Computing Machinery and Intelligence", "url": "https://doi.org/10.1093/mind/LIX.236.433", "format": "paper", "author": "Alan Turing", "year": 1950, "domain": "doi.org", "snippet": "The paper that proposed the Turing Test and asked 'Can machines think?'" },
+          { "id": "church-turing", "title": "Church–Turing Thesis", "url": "https://plato.stanford.edu/entries/church-turing/", "format": "overview", "domain": "plato.stanford.edu", "snippet": "Philosophical and mathematical analysis of the equivalence of computability models." },
+          { "id": "ai-history-wiki", "title": "History of Artificial Intelligence", "url": "https://en.wikipedia.org/wiki/History_of_artificial_intelligence", "format": "overview", "domain": "wikipedia.org", "snippet": "Comprehensive timeline from early automata to modern deep learning." }
+        ]
+      },
+      {
+        "id": "ai-1950s",
+        "content": "The 1950s",
+        "start": 80,
+        "end": 65,
+        "group": "AI Timeline",
+        "description": "A critical decade where AI became an explicit interdisciplinary research program.",
+        "parentId": "twentieth-century-ai",
+        "prerequisiteIds": ["formal-logic"],
+        "zoomBand": "modern",
+        "geoCenter": { "latitude": 43.7044, "longitude": -72.2887, "zoom": 12, "heading": 0 },
+        "sources": [
+          { "id": "ai-winter-wiki", "title": "AI Winter", "url": "https://en.wikipedia.org/wiki/AI_winter", "format": "overview", "domain": "wikipedia.org", "snippet": "Overview of the boom-and-bust cycles of AI funding and optimism since the 1950s." },
+          { "id": "samuel-checkers", "title": "Some Studies in Machine Learning Using the Game of Checkers", "url": "https://doi.org/10.1147/rd.33.0210", "format": "paper", "author": "Arthur Samuel", "year": 1959, "domain": "doi.org", "snippet": "Pioneering work on self-learning programs that coined 'machine learning'." }
+        ],
+        "payload": {
+          "taskType": "concept-sorting",
+          "missionTitle": "Concept Sorting: 1950s Sequence",
+          "prompt": "Order these ideas logically: Formal Logic → The Turing Machine → The Dartmouth Workshop.",
+          "completionEvidenceHint": "Submit the sequence in the correct logical order.",
+          "primarySourceSnippets": [
+            {
+              "id": "snippet-dartmouth-1956",
+              "quote": "A two month, ten man study of artificial intelligence be carried out during the summer of 1956.",
+              "source": "Dartmouth Summer Research Project Proposal, 1955",
+              "relativeOffsetLabel": "+1y"
+            }
+          ]
+        }
+      },
+      {
+        "id": "turing-machine",
+        "content": "The Turing Machine",
+        "start": 90,
+        "end": 88,
+        "group": "Computation Track",
+        "description": "Computation is formalized as machine-executable symbolic manipulation.",
+        "prerequisiteIds": ["formal-logic"],
+        "zoomBand": "historical",
+        "geoCenter": { "latitude": 51.7536, "longitude": -1.2544, "zoom": 14 },
+        "sources": [
+          { "id": "turing-1936", "title": "On Computable Numbers, with an Application to the Entscheidungsproblem", "url": "https://doi.org/10.1112/plms/s2-42.1.230", "format": "paper", "author": "Alan Turing", "year": 1936, "domain": "doi.org", "snippet": "The paper that defined computation and proved limits of mechanical decision procedures." },
+          { "id": "turing-wiki", "title": "Turing Machine", "url": "https://en.wikipedia.org/wiki/Turing_machine", "format": "overview", "domain": "wikipedia.org", "snippet": "Comprehensive overview of the abstract machine that formalized the concept of computation." },
+          { "id": "turing-sep", "title": "Turing Machines", "url": "https://plato.stanford.edu/entries/turing-machine/", "format": "overview", "domain": "plato.stanford.edu", "snippet": "Stanford Encyclopedia analysis of Turing machines and their philosophical significance." }
+        ]
+      },
+      {
+        "id": "dartmouth-workshop",
+        "content": "The Dartmouth Workshop",
+        "start": 69,
+        "end": 68,
+        "group": "AI Timeline",
+        "description": "The field of Artificial Intelligence is named and scoped as a research agenda.",
+        "parentId": "ai-1950s",
+        "prerequisiteIds": ["turing-machine"],
+        "zoomBand": "modern",
+        "geoCenter": { "latitude": 43.7044, "longitude": -72.2887, "zoom": 16 },
+        "sources": [
+          { "id": "dartmouth-proposal", "title": "A Proposal for the Dartmouth Summer Research Project on Artificial Intelligence", "url": "http://jmc.stanford.edu/articles/dartmouth/dartmouth.pdf", "format": "paper", "author": "McCarthy, Minsky, Rochester, Shannon", "year": 1955, "domain": "jmc.stanford.edu", "snippet": "The founding document of AI as a research field." },
+          { "id": "dartmouth-wiki", "title": "Dartmouth Workshop", "url": "https://en.wikipedia.org/wiki/Dartmouth_workshop", "format": "overview", "domain": "wikipedia.org", "snippet": "Overview of the 1956 workshop that coined 'artificial intelligence' as a field name." }
+        ],
+        "payload": {
+          "taskType": "synthesis-challenge",
+          "missionTitle": "Synthesis Challenge",
+          "prompt": "Connect the Dartmouth framing of AI to one hardware or biology prerequisite in a single sentence.",
+          "completionEvidenceHint": "One sentence naming both concepts and the causal link.",
+          "primarySourceSnippets": [
+            {
+              "id": "snippet-dartmouth-definition",
+              "quote": "Every aspect of learning or any other feature of intelligence can in principle be so precisely described that a machine can be made to simulate it.",
+              "source": "Dartmouth Proposal, 1955",
+              "relativeOffsetLabel": "t0"
+            }
+          ]
+        }
+      },
+      {
+        "id": "perceptron",
+        "content": "The Perceptron",
+        "start": 110,
+        "end": 109,
+        "group": "Biology Track",
+        "description": "A neuron-inspired learning model that reconnects AI with biological inspiration.",
+        "prerequisiteIds": ["turing-machine"],
+        "zoomBand": "modern",
+        "geoCenter": { "latitude": 42.4534, "longitude": -76.4735, "zoom": 14 },
+        "sources": [
+          { "id": "rosenblatt-1958", "title": "The Perceptron: A Probabilistic Model for Information Storage and Organization in the Brain", "url": "https://doi.org/10.1037/h0042519", "format": "paper", "author": "Frank Rosenblatt", "year": 1958, "domain": "doi.org", "snippet": "The original perceptron paper connecting neural models to machine learning." },
+          { "id": "perceptron-wiki", "title": "Perceptron", "url": "https://en.wikipedia.org/wiki/Perceptron", "format": "overview", "domain": "wikipedia.org", "snippet": "From Rosenblatt's model to its limitations and the subsequent neural network winter." }
+        ]
+      },
+      {
+        "id": "semiconductor-physics",
+        "content": "Semiconductor Physics",
+        "start": 95,
+        "end": 85,
+        "group": "Geology Track",
+        "description": "Material science and solid-state advances unlock practical compute scale.",
+        "prerequisiteIds": ["formal-logic"],
+        "zoomBand": "modern",
+        "geoCenter": { "latitude": 40.6824, "longitude": -74.4010, "zoom": 14 },
+        "sources": [
+          { "id": "transistor-1947", "title": "The Invention of the Transistor", "url": "https://en.wikipedia.org/wiki/Transistor#History", "format": "overview", "domain": "wikipedia.org", "snippet": "Bell Labs' 1947 invention that replaced vacuum tubes and enabled computing hardware." },
+          { "id": "moores-law", "title": "Moore's Law", "url": "https://en.wikipedia.org/wiki/Moore%27s_law", "format": "overview", "domain": "wikipedia.org", "snippet": "The observation that transistor density doubles roughly every two years, driving compute scaling." },
+          { "id": "moore-1965", "title": "Cramming More Components onto Integrated Circuits", "url": "https://doi.org/10.1109/JPROC.1998.658762", "format": "paper", "author": "Gordon E. Moore", "year": 1965, "domain": "doi.org", "snippet": "The original Electronics magazine paper predicting exponential transistor density growth." }
+        ]
+      },
+      {
+        "id": "internet-era",
+        "content": "Internet Era",
+        "start": 40,
+        "end": 0,
+        "group": "AI Timeline",
+        "description": "Global data networks create training corpora and deployment pathways for AI systems.",
+        "parentId": "twentieth-century-ai",
+        "prerequisiteIds": ["formal-logic", "dartmouth-workshop"],
+        "zoomBand": "micro",
+        "geoCenter": { "latitude": 46.2330, "longitude": 6.0557, "zoom": 14 },
+        "sources": [
+          { "id": "berners-lee-1989", "title": "Information Management: A Proposal", "url": "https://www.w3.org/History/1989/proposal.html", "format": "paper", "author": "Tim Berners-Lee", "year": 1989, "domain": "w3.org", "snippet": "The original CERN proposal that led to the creation of the World Wide Web." },
+          { "id": "internet-history", "title": "History of the Internet", "url": "https://en.wikipedia.org/wiki/History_of_the_Internet", "format": "overview", "domain": "wikipedia.org", "snippet": "From ARPANET to global networking and its role in data-driven AI." },
+          { "id": "cerf-kahn-1974", "title": "A Protocol for Packet Network Intercommunication", "url": "https://doi.org/10.1109/TCOM.1974.1092259", "format": "paper", "author": "Cerf & Kahn", "year": 1974, "domain": "doi.org", "snippet": "The TCP paper that established internet protocol architecture." }
+        ],
+        "payload": {
+          "taskType": "synthesis-challenge",
+          "missionTitle": "Cross-Discipline Link",
+          "prompt": "Write one sentence connecting Internet Era scaling to a Formal Logic prerequisite.",
+          "completionEvidenceHint": "Include both eras and one causal phrase.",
+          "primarySourceSnippets": [
+            {
+              "id": "snippet-network-effect",
+              "quote": "The network itself became the computer.",
+              "source": "Network computing retrospective",
+              "relativeOffsetLabel": "+4y"
+            }
+          ]
+        }
+      },
+      {
+        "id": "large-language-models",
+        "content": "Large Language Models",
+        "start": 6,
+        "end": 0,
+        "group": "AI Timeline",
+        "description": "Transformer-based systems scale language modeling into interactive reasoning interfaces.",
+        "parentId": "internet-era",
+        "prerequisiteIds": ["perceptron", "semiconductor-physics", "internet-era"],
+        "geoCenter": { "latitude": 37.7749, "longitude": -122.4194, "zoom": 13 },
+        "sources": [
+          { "id": "attention-2017", "title": "Attention Is All You Need", "url": "https://arxiv.org/abs/1706.03762", "format": "paper", "author": "Vaswani et al.", "year": 2017, "domain": "arxiv.org", "snippet": "The transformer architecture paper that enabled modern large language models." },
+          { "id": "gpt3-2020", "title": "Language Models are Few-Shot Learners", "url": "https://arxiv.org/abs/2005.14165", "format": "paper", "author": "Brown et al.", "year": 2020, "domain": "arxiv.org", "snippet": "GPT-3 paper demonstrating emergent few-shot capabilities at scale." },
+          { "id": "scaling-laws", "title": "Scaling Laws for Neural Language Models", "url": "https://arxiv.org/abs/2001.08361", "format": "paper", "author": "Kaplan et al.", "year": 2020, "domain": "arxiv.org", "snippet": "Empirical scaling laws showing predictable performance gains with model size, data, and compute." },
+          { "id": "llm-wiki", "title": "Large Language Model", "url": "https://en.wikipedia.org/wiki/Large_language_model", "format": "overview", "domain": "wikipedia.org", "snippet": "Overview of transformer-based language models from GPT to modern multimodal systems." }
+        ],
+        "connections": [
+          {
+            "targetEraId": "semiconductor-physics",
+            "kind": "influence",
+            "strength": 0.95
+          },
+          {
+            "targetEraId": "perceptron",
+            "kind": "influence",
+            "strength": 0.91
+          }
+        ],
+        "zoomBand": "micro",
+        "payload": {
+          "taskType": "active-recall",
+          "missionTitle": "Micro Recall",
+          "prompt": "Summarize in one sentence why semiconductors and perceptrons are both required for modern LLM performance.",
+          "completionEvidenceHint": "One sentence naming both prerequisites and their roles.",
+          "primarySourceSnippets": [
+            {
+              "id": "snippet-llm-scaling",
+              "quote": "Scaling laws suggest predictable performance gains with model size, data, and compute.",
+              "source": "OpenAI scaling laws summary",
+              "relativeOffsetLabel": "t0"
+            },
+            {
+              "id": "snippet-transformers",
+              "quote": "Attention is all you need.",
+              "source": "Vaswani et al., 2017",
+              "relativeOffsetLabel": "+1y"
+            }
+          ]
+        }
+      }
+    ],
+    "progress": {
+      "formal-logic": 0,
+      "twentieth-century-ai": 0,
+      "ai-1950s": 0,
+      "turing-machine": 0,
+      "dartmouth-workshop": 0,
+      "perceptron": 0,
+      "semiconductor-physics": 0,
+      "internet-era": 0,
+      "large-language-models": 0
+    }
+  }
+}
