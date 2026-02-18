@@ -28,6 +28,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install API dependencies
+        run: cd api && npm ci
+
       - name: Build
         run: npm run build
         env:
@@ -43,6 +46,7 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
           app_location: dist
+          api_location: api
           skip_app_build: true
 
   close-pr:

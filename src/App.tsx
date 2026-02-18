@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useAuth } from './auth'
 import { AzureMapPanel } from './components/AzureMapPanel'
 import { LessonLauncher } from './components/LessonLauncher'
 import { NotebookPanel } from './components/NotebookPanel'
@@ -14,7 +15,7 @@ import type { NotebookEntry } from './notebook/notebook-types'
 import { NotebookStore, generateEntryId } from './notebook/notebook-store'
 import type { Source } from './sources/source-types'
 import { resolveViewerContext } from './viewer/context'
-import { LocalStorageProgressStore, MemoryProgressStore, NoopProgressStore, type ProgressStore } from './viewer/progress-store'
+import { LocalStorageProgressStore, MemoryProgressStore, NoopProgressStore, RemoteProgressStore, type ProgressStore } from './viewer/progress-store'
 import type { GeoCenter, GeoEra, GhostLayerMode, MapSyncMode, RuntimeNotice, SubjectPackEntry, SubgraphSortMode, TimelineViewerConfig, ViewerMode, ZoomBand } from './viewer/types'
 import { viewportSync } from './viewer/viewport-sync'
 
@@ -75,6 +76,7 @@ const zoomBandFromEraSpan = (era: Era): ZoomBand => {
 }
 
 function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwitchContext }: AppProps) {
+  const auth = useAuth()
   const resolvedContext = useMemo(() => resolveViewerContext(config), [config])
   const currentMode = config?.mode ?? 'default-context'
   const currentPackId = new URLSearchParams(window.location.search).get('subjectPack') ?? undefined
@@ -82,15 +84,32 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
   // Spatial / map state
   const [showMap, setShowMap] = useState(false)
 
+  const progressPackId = currentPackId ?? 'built-in'
+
   const progressStore = useMemo<ProgressStore>(() => {
+    // When authenticated, use remote-backed store with localStorage fallback
+    if (auth.isAuthenticated && resolvedContext.persistence === 'local') {
+      return new RemoteProgressStore(progressPackId, resolvedContext.storageKey)
+    }
     if (resolvedContext.persistence === 'local') return new LocalStorageProgressStore(resolvedContext.storageKey)
     if (resolvedContext.persistence === 'memory') return new MemoryProgressStore()
     return new NoopProgressStore()
-  }, [resolvedContext.persistence, resolvedContext.storageKey])
+  }, [resolvedContext.persistence, resolvedContext.storageKey, auth.isAuthenticated, progressPackId])
 
   const [progress, setProgress] = useState<Record<string, number>>(() =>
     normalizeProgress(resolvedContext.eras, resolvedContext.initialProgress, progressStore.load()),
   )
+
+  // Hydrate progress from remote API when authenticated
+  useEffect(() => {
+    if (progressStore instanceof RemoteProgressStore) {
+      void progressStore.hydrate().then((remoteProgress) => {
+        if (remoteProgress) {
+          setProgress(normalizeProgress(resolvedContext.eras, resolvedContext.initialProgress, remoteProgress))
+        }
+      })
+    }
+  }, [progressStore, resolvedContext.eras, resolvedContext.initialProgress])
 
   const [selectedEra, setSelectedEra] = useState<Era | null>(() => {
     if (!resolvedContext.initialSelectedEraId) return null
@@ -560,6 +579,30 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
             <button className="rounded border border-slate-600 px-2 py-0.5 text-xs md:hidden" onClick={() => setSidebarOpen((current) => !current)} type="button">
               {sidebarOpen ? 'Hide Controls' : 'Show Controls'}
             </button>
+            {auth.loading ? (
+              <span className="text-[11px] text-slate-500">…</span>
+            ) : auth.isAuthenticated ? (
+              <span className="inline-flex items-center gap-1.5">
+                <span className="hidden text-[11px] text-slate-300 sm:inline" aria-label="Signed-in user">{auth.user?.displayName}</span>
+                <button
+                  aria-label="Sign out"
+                  className="rounded border border-slate-600 px-2 py-0.5 text-xs text-slate-300 hover:border-rose-500 hover:text-rose-300"
+                  onClick={auth.logOut}
+                  type="button"
+                >
+                  Sign Out
+                </button>
+              </span>
+            ) : (
+              <button
+                aria-label="Sign in with Microsoft"
+                className="rounded border border-blue-600 bg-blue-900/30 px-2 py-0.5 text-xs font-medium text-blue-200 hover:bg-blue-800/40"
+                onClick={auth.login}
+                type="button"
+              >
+                Sign In
+              </button>
+            )}
           </div>
         </div>
       </header>

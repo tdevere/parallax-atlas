@@ -1,7 +1,19 @@
 {
+  "auth": {
+    "identityProviders": {
+      "azureActiveDirectory": {
+        "registration": {
+          "openIdIssuer": "https://login.microsoftonline.com/common/v2.0",
+          "clientIdSettingName": "AZURE_CLIENT_ID",
+          "clientSecretSettingName": "AZURE_CLIENT_SECRET"
+        },
+        "userDetailsClaim": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"
+      }
+    }
+  },
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/assets/*", "/vite.svg", "/subject-packs/*"]
+    "exclude": ["/assets/*", "/vite.svg", "/subject-packs/*", "/api/*", "/.auth/*"]
   },
   "globalHeaders": {
     "X-Content-Type-Options": "nosniff",
@@ -14,8 +26,26 @@
       "headers": {
         "Cache-Control": "public, max-age=31536000, immutable"
       }
+    },
+    {
+      "route": "/api/*",
+      "allowedRoles": ["authenticated"]
+    },
+    {
+      "route": "/.auth/login/github",
+      "statusCode": 404
+    },
+    {
+      "route": "/.auth/login/twitter",
+      "statusCode": 404
     }
   ],
+  "responseOverrides": {
+    "401": {
+      "redirect": "/.auth/login/aad",
+      "statusCode": 302
+    }
+  },
   "mimeTypes": {
     ".json": "application/json"
   }
