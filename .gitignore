@@ -14,6 +14,9 @@ playwright-report
 test-results
 *.local
 
+# AI resolution artifacts
+.ai-resolution.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

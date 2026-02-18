@@ -9,6 +9,7 @@ permissions:
   issues: write
   pull-requests: write
   actions: read
+  id-token: write
 
 jobs:
   # ── Triage: classify the issue ────────────────────────────────────────
@@ -17,6 +18,7 @@ jobs:
     outputs:
       is_bug: ${{ steps.classify.outputs.is_bug }}
       is_feature: ${{ steps.classify.outputs.is_feature }}
+      issue_type: ${{ steps.classify.outputs.issue_type }}
     steps:
       - name: Classify issue
         id: classify
@@ -26,14 +28,12 @@ jobs:
           IS_BUG=false
           IS_FEATURE=false
 
-          # Check labels first
           if echo "$LABELS" | grep -qi "bug"; then
             IS_BUG=true
           elif echo "$LABELS" | grep -qi "feature\|enhancement"; then
             IS_FEATURE=true
           fi
 
-          # Fallback: check title prefix
           if [ "$IS_BUG" = "false" ] && [ "$IS_FEATURE" = "false" ]; then
             if echo "$TITLE" | grep -qi "^\[bug\]"; then
               IS_BUG=true
@@ -42,8 +42,13 @@ jobs:
             fi
           fi
 
+          ISSUE_TYPE="unknown"
+          if [ "$IS_BUG" = "true" ]; then ISSUE_TYPE="bug"; fi
+          if [ "$IS_FEATURE" = "true" ]; then ISSUE_TYPE="feature"; fi
+
           echo "is_bug=$IS_BUG" >> "$GITHUB_OUTPUT"
           echo "is_feature=$IS_FEATURE" >> "$GITHUB_OUTPUT"
+          echo "issue_type=$ISSUE_TYPE" >> "$GITHUB_OUTPUT"
 
       - name: Add triage labels
         uses: actions/github-script@v7
@@ -60,40 +65,13 @@ jobs:
               labels,
             });
 
-  # ── Feature: acknowledge and tag ──────────────────────────────────────
-  feature-evaluation:
+  # ── Autonomous resolution: AI → code → PR → test → merge ─────────────
+  auto-resolve:
     needs: triage
-    if: needs.triage.outputs.is_feature == 'true'
+    if: needs.triage.outputs.is_bug == 'true' || needs.triage.outputs.is_feature == 'true'
     runs-on: ubuntu-latest
-    steps:
-      - name: Acknowledge feature request
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: [
-                '🚀 **Feature request received!**',
-                '',
-                'This has been added to the evaluation backlog.',
-                '',
-                '| Step | Status |',
-                '|------|--------|',
-                '| Triage | ✅ Classified as feature request |',
-                '| Impact assessment | 🔄 Pending review |',
-                '| Implementation | ⏳ Queued |',
-                '',
-                '_Automated by Parallax Atlas CI_',
-              ].join('\n'),
-            });
-
-  # ── Bug: validate → attempt fix → test → deploy ──────────────────────
-  bug-resolution:
-    needs: triage
-    if: needs.triage.outputs.is_bug == 'true'
-    runs-on: ubuntu-latest
+    env:
+      ISSUE_TYPE: ${{ needs.triage.outputs.issue_type }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -113,86 +91,234 @@ jobs:
       - name: Build API
         run: cd api && npm run build
 
-      - name: Post evaluation start
+      # ── Announce start ────────────────────────────────────────────────
+      - name: Post resolution start
         uses: actions/github-script@v7
         with:
           script: |
+            const type = '${{ env.ISSUE_TYPE }}';
+            const icon = type === 'bug' ? '🐛' : '✨';
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
               body: [
-                '🔍 **Bug evaluation pipeline started**',
+                `${icon} **Autonomous resolution pipeline started**`,
                 '',
                 '| Step | Status |',
                 '|------|--------|',
-                '| Reproduce (lint) | 🔄 Running |',
-                '| Reproduce (build) | ⏳ Pending |',
-                '| Reproduce (E2E tests) | ⏳ Pending |',
-                '| Resolution attempt | ⏳ Pending |',
-                '| Deploy | ⏳ Pending |',
+                '| Triage | ✅ Classified |',
+                '| AI analysis | 🔄 Running |',
+                '| Code generation | ⏳ Pending |',
+                '| Quality gates | ⏳ Pending |',
+                '| Pull request | ⏳ Pending |',
+                '| Auto-merge | ⏳ Pending |',
                 '',
-                `Triggered by issue #${context.issue.number}`,
+                `_Attempting autonomous resolution of #${context.issue.number}…_`,
               ].join('\n'),
             });
 
-      - name: Lint check
+      # ── Azure AD token for OpenAI ─────────────────────────────────────
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: '{"clientId":"${{ secrets.AZURE_SP_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_SP_CLIENT_SECRET }}","tenantId":"${{ secrets.AZURE_SP_TENANT_ID }}","subscriptionId":"${{ secrets.AZURE_SUBSCRIPTION_ID }}"}'
+
+      - name: Get Azure AD token
+        id: token
+        run: |
+          TOKEN=$(az account get-access-token \
+            --resource https://cognitiveservices.azure.com \
+            --query accessToken -o tsv)
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      # ── AI resolution agent ───────────────────────────────────────────
+      - name: Run AI resolution agent
+        id: resolve
+        env:
+          AZURE_OPENAI_ENDPOINT: https://parallax-atlas-ai.openai.azure.com
+          AZURE_OPENAI_DEPLOYMENT: gpt-4o
+          AZURE_AD_TOKEN: ${{ steps.token.outputs.token }}
+        run: |
+          node scripts/resolve-issue.mjs \
+            --issue-number "${{ github.event.issue.number }}" \
+            --issue-title "${{ github.event.issue.title }}" \
+            --issue-body "${{ github.event.issue.body }}" \
+            --issue-type "${{ env.ISSUE_TYPE }}"
+
+          if [ -f .ai-resolution.json ]; then
+            CHANGES=$(node -e "const r=JSON.parse(require('fs').readFileSync('.ai-resolution.json','utf-8'));console.log(r.appliedCount||0)")
+            ANALYSIS=$(node -e "const r=JSON.parse(require('fs').readFileSync('.ai-resolution.json','utf-8'));console.log(r.analysis||'')")
+            COMMIT_MSG=$(node -e "const r=JSON.parse(require('fs').readFileSync('.ai-resolution.json','utf-8'));console.log(r.commitMessage||'')")
+          else
+            CHANGES=0
+            ANALYSIS="No resolution file generated"
+            COMMIT_MSG=""
+          fi
+
+          echo "changes=$CHANGES" >> "$GITHUB_OUTPUT"
+          {
+            echo "analysis<<ANALYSIS_EOF"
+            echo "$ANALYSIS"
+            echo "ANALYSIS_EOF"
+          } >> "$GITHUB_OUTPUT"
+          echo "commit_msg=$COMMIT_MSG" >> "$GITHUB_OUTPUT"
+
+      # ── Validate AI-generated changes ─────────────────────────────────
+      - name: Lint (post-AI)
         id: lint
+        if: steps.resolve.outputs.changes != '0'
         run: npm run lint
         continue-on-error: true
 
-      - name: Build check
+      - name: Build (post-AI)
         id: build
+        if: steps.resolve.outputs.changes != '0'
         run: npm run build
         env:
           VITE_BING_MAPS_API_KEY: ${{ secrets.VITE_BING_MAPS_API_KEY }}
         continue-on-error: true
 
       - name: Install Playwright browsers
+        if: steps.resolve.outputs.changes != '0'
         run: npx playwright install --with-deps chromium
 
-      - name: E2E tests
+      - name: E2E tests (post-AI)
         id: tests
+        if: steps.resolve.outputs.changes != '0'
         run: npm run test:e2e
         continue-on-error: true
 
-      - name: Post evaluation results
+      # ── Create PR if all gates pass ───────────────────────────────────
+      - name: Create resolution PR
+        id: pr
+        if: |
+          steps.resolve.outputs.changes != '0' &&
+          steps.lint.outcome == 'success' &&
+          steps.build.outcome == 'success' &&
+          steps.tests.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="auto-resolve/issue-${{ github.event.issue.number }}"
+          COMMIT_MSG="${{ steps.resolve.outputs.commit_msg }}"
+          if [ -z "$COMMIT_MSG" ]; then
+            COMMIT_MSG="fix: auto-resolve issue #${{ github.event.issue.number }}"
+          fi
+
+          git config user.name "parallax-atlas-bot"
+          git config user.email "bot@parallax-atlas.dev"
+          git checkout -b "$BRANCH"
+          git add -A
+          git rm -f --cached .ai-resolution.json 2>/dev/null || true
+          git commit -m "$COMMIT_MSG" \
+                    -m "Closes #${{ github.event.issue.number }}" \
+                    -m "Auto-generated by AI resolution pipeline"
+          git push origin "$BRANCH"
+
+          PR_BODY="## AI-Resolved: Issue #${{ github.event.issue.number }}
+
+          **Analysis:** ${{ steps.resolve.outputs.analysis }}
+
+          ### Quality Gates
+          | Gate | Result |
+          |------|--------|
+          | Lint | ✅ Passed |
+          | Build | ✅ Passed |
+          | E2E Tests | ✅ Passed |
+
+          ---
+          Closes #${{ github.event.issue.number }}
+          _Auto-generated by Parallax Atlas AI resolution pipeline_"
+
+          PR_URL=$(gh pr create \
+            --base master \
+            --head "$BRANCH" \
+            --title "$COMMIT_MSG" \
+            --body "$PR_BODY" \
+            --label "auto-resolved")
+
+          echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
+
+      # ── Auto-merge ────────────────────────────────────────────────────
+      - name: Enable auto-merge
+        if: steps.pr.outputs.pr_url != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr merge "${{ steps.pr.outputs.pr_url }}" --merge --auto || \
+          gh pr merge "${{ steps.pr.outputs.pr_url }}" --merge
+
+      # ── Report results to issue ───────────────────────────────────────
+      - name: Post resolution results
+        if: always()
         uses: actions/github-script@v7
         with:
           script: |
-            const lintOk = '${{ steps.lint.outcome }}' === 'success';
+            const changes = parseInt('${{ steps.resolve.outputs.changes }}' || '0');
+            const analysis = `${{ steps.resolve.outputs.analysis }}`.replace(/`/g, "'");
+            const lintOk  = '${{ steps.lint.outcome }}'  === 'success';
             const buildOk = '${{ steps.build.outcome }}' === 'success';
             const testsOk = '${{ steps.tests.outcome }}' === 'success';
-            const allPassing = lintOk && buildOk && testsOk;
-
+            const prUrl   = '${{ steps.pr.outputs.pr_url }}' || '';
+            const allPass = lintOk && buildOk && testsOk;
             const icon = (ok) => ok ? '✅' : '❌';
 
-            const body = [
-              '📋 **Bug evaluation results**',
-              '',
-              '| Step | Status |',
-              '|------|--------|',
-              `| Lint | ${icon(lintOk)} ${lintOk ? 'Passing' : 'Failing'} |`,
-              `| Build | ${icon(buildOk)} ${buildOk ? 'Passing' : 'Failing'} |`,
-              `| E2E Tests | ${icon(testsOk)} ${testsOk ? 'Passing (all)' : 'Failing'} |`,
-              '',
-            ];
+            const body = [];
 
-            if (allPassing) {
+            if (changes === 0) {
               body.push(
-                '✅ **All quality gates passing.** The reported issue may not be reproducible via automated checks.',
-                'A maintainer will investigate further.',
+                '🤖 **AI analysis complete — no auto-resolution generated**',
+                '',
+                `**Analysis:** ${analysis}`,
+                '',
+                'The AI agent reviewed this issue but could not generate code changes.',
+                'A maintainer will review manually.',
+              );
+            } else if (allPass && prUrl) {
+              body.push(
+                '🎉 **Autonomous resolution successful!**',
+                '',
+                `**Analysis:** ${analysis}`,
+                '',
+                '| Step | Status |',
+                '|------|--------|',
+                `| AI code generation | ✅ ${changes} file(s) |`,
+                `| Lint  | ${icon(lintOk)}  |`,
+                `| Build | ${icon(buildOk)} |`,
+                `| E2E   | ${icon(testsOk)} |`,
+                `| PR    | ✅ [Created](${prUrl}) |`,
+                '| Merge | 🔄 Queued |',
+                '',
+                `**PR:** ${prUrl}`,
+                '_Auto-merge will proceed once branch protection checks pass._',
               );
             } else {
               body.push(
-                '⚠️ **Quality gate failures detected.** These may be related to the reported bug.',
+                '⚠️ **AI generated changes but quality gates failed**',
                 '',
-                'A resolution branch will be attempted if Copilot Workspace or a maintainer can address the failures.',
-                'Deployment is **blocked** until all tests pass.',
+                `**Analysis:** ${analysis}`,
+                '',
+                '| Step | Status |',
+                '|------|--------|',
+                `| AI code generation | ✅ ${changes} file(s) |`,
+                `| Lint  | ${icon(lintOk)}  |`,
+                `| Build | ${icon(buildOk)} |`,
+                `| E2E   | ${icon(testsOk)} |`,
+                '| PR | ❌ Blocked |',
+                '',
+                'Changes did not pass all quality gates. A maintainer will resolve manually.',
               );
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: ['needs-human-review'],
+              });
             }
 
-            body.push('', '_Automated by Parallax Atlas CI_');
+            body.push('', '_Automated by Parallax Atlas AI pipeline_');
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -200,25 +326,3 @@ jobs:
               issue_number: context.issue.number,
               body: body.join('\n'),
             });
-
-            // If tests are failing, add a label to signal
-            if (!allPassing) {
-              await github.rest.issues.addLabels({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                labels: ['quality-gate-failure'],
-              });
-            }
-
-      # Only deploy if ALL checks pass (bug didn't break the build)
-      - name: Deploy (only if all gates pass)
-        if: steps.lint.outcome == 'success' && steps.build.outcome == 'success' && steps.tests.outcome == 'success'
-        uses: Azure/static-web-apps-deploy@v1
-        with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          action: upload
-          app_location: dist
-          api_location: api
-          skip_app_build: true
