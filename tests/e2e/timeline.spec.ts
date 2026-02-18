@@ -18,7 +18,7 @@ test('selecting a timeline era enters focus mode and can return to full timeline
   await expect(backToFullTimelineButton).toBeVisible()
   await expect(page.getByText(/Breadcrumb: Full Timeline \/ /)).toBeVisible()
   await expect(page.getByText('Tip: Select an era on the timeline to enter focus mode and navigate nearby eras.')).toHaveCount(0)
-  await expect(page.locator('li[aria-current="true"]')).toHaveCount(1)
+  await expect(page.locator('aside li[aria-current="true"]')).toHaveCount(1)
 
   await backToFullTimelineButton.click()
   await expect(backToFullTimelineButton).toHaveCount(0)
@@ -27,7 +27,7 @@ test('selecting a timeline era enters focus mode and can return to full timeline
 test('persists progress and exports JSON', async ({ page }) => {
   await page.goto('/')
 
-  const bigBangCard = page.locator('li', { hasText: 'Big Bang' })
+  const bigBangCard = page.locator('aside li', { hasText: 'Big Bang' })
   const completeTaskButton = page.getByRole('button', { name: 'Complete task for Big Bang' })
 
   await expect(bigBangCard).toBeVisible()
@@ -38,7 +38,7 @@ test('persists progress and exports JSON', async ({ page }) => {
   await expect(bigBangCard.getByText('25%')).toBeVisible()
 
   await page.reload()
-  await expect(page.locator('li', { hasText: 'Big Bang' }).getByText('25%')).toBeVisible()
+  await expect(page.locator('aside li', { hasText: 'Big Bang' }).getByText('25%')).toBeVisible()
 
   const downloadPromise = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Export JSON' }).click()
@@ -62,7 +62,7 @@ test('today mission panel guides progress and can focus recommended era', async 
   await page.getByRole('button', { name: 'Complete task for Big Bang' }).click()
 
   await expect(page.getByText('Started 1/19')).toBeVisible()
-  await expect(page.locator('li', { hasText: 'Big Bang' }).getByText('25%')).toBeVisible()
+  await expect(page.locator('aside li', { hasText: 'Big Bang' }).getByText('25%')).toBeVisible()
 })
 
 test('mobile toggle shows and hides controls sidebar', async ({ page }) => {
@@ -132,7 +132,7 @@ test('falls back safely when progress localStorage is malformed', async ({ page 
   await page.goto('/')
 
   await expect(page.getByRole('heading', { name: /parallax atlas/i })).toBeVisible()
-  await expect(page.locator('li', { hasText: 'Big Bang' }).getByText('0%')).toBeVisible()
+  await expect(page.locator('aside li', { hasText: 'Big Bang' }).getByText('0%')).toBeVisible()
 
   const isStorageRecoverable = await page.evaluate(() => {
     const saved = window.localStorage.getItem('knowledge-timeline-progress')
@@ -159,7 +159,7 @@ test('no-context mode ignores prior persisted progress', async ({ page }) => {
 
   await page.goto('/?viewerMode=no-context')
 
-  await expect(page.locator('li', { hasText: 'Big Bang' }).getByText('0%')).toBeVisible()
+  await expect(page.locator('aside li', { hasText: 'Big Bang' }).getByText('0%')).toBeVisible()
 
   const storedValue = await page.evaluate(() => window.localStorage.getItem('knowledge-timeline-progress'))
   expect(storedValue).toContain('"big-bang":88')
@@ -168,9 +168,9 @@ test('no-context mode ignores prior persisted progress', async ({ page }) => {
 test('loads provided subject pack from query', async ({ page }) => {
   await page.goto('/?viewerMode=provided-context&subjectPack=world-history-survey')
 
-  await expect(page.locator('li', { hasText: 'Neolithic Revolution' })).toBeVisible()
+  await expect(page.locator('aside li', { hasText: 'Neolithic Revolution' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Agrarian Civilizations' })).toBeVisible()
-  await expect(page.locator('li', { hasText: 'Big Bang' })).toHaveCount(0)
+  await expect(page.locator('aside li', { hasText: 'Big Bang' })).toHaveCount(0)
 })
 
 test('invalid subject pack query falls back with warning notice', async ({ page }) => {
@@ -178,8 +178,8 @@ test('invalid subject pack query falls back with warning notice', async ({ page 
 
   const warningNotice = page.getByRole('alert').filter({ hasText: "Subject pack 'missing-pack' was not found" })
   await expect(warningNotice).toContainText('Warning')
-  await expect(page.locator('li', { hasText: 'Big Bang' })).toBeVisible()
-  await expect(page.locator('li', { hasText: 'Neolithic Revolution' })).toHaveCount(0)
+  await expect(page.locator('aside li', { hasText: 'Big Bang' })).toBeVisible()
+  await expect(page.locator('aside li', { hasText: 'Neolithic Revolution' })).toHaveCount(0)
 })
 
 test('runtime warning notice can be dismissed', async ({ page }) => {
@@ -218,20 +218,20 @@ test('invalid subject pack payload falls back with warning notice', async ({ pag
   await page.goto('/?viewerMode=provided-context&subjectPack=world-history-survey')
 
   await expect(page.getByRole('alert')).toContainText("Subject pack 'World History Survey' is invalid")
-  await expect(page.locator('li', { hasText: 'Big Bang' })).toBeVisible()
-  await expect(page.locator('li', { hasText: 'Bad Era' })).toHaveCount(0)
+  await expect(page.locator('aside li', { hasText: 'Big Bang' })).toBeVisible()
+  await expect(page.locator('aside li', { hasText: 'Bad Era' })).toHaveCount(0)
 })
 
 test('context selector swaps from default to provided pack', async ({ page }) => {
   await page.goto('/')
 
-  await expect(page.locator('li', { hasText: 'Big Bang' })).toBeVisible()
+  await expect(page.locator('aside li', { hasText: 'Big Bang' })).toBeVisible()
 
   await page.getByLabel('Context selector').selectOption('provided-context:world-history-survey')
 
   await expect(page).toHaveURL(/viewerMode=provided-context/)
   await expect(page).toHaveURL(/subjectPack=world-history-survey/)
-  await expect(page.locator('li', { hasText: 'Neolithic Revolution' })).toBeVisible()
+  await expect(page.locator('aside li', { hasText: 'Neolithic Revolution' })).toBeVisible()
 })
 
 test('context selector can switch to quantum physics pack', async ({ page }) => {
@@ -240,7 +240,7 @@ test('context selector can switch to quantum physics pack', async ({ page }) => 
   await page.getByLabel('Context selector').selectOption('provided-context:quantum-physics-survey')
 
   await expect(page).toHaveURL(/subjectPack=quantum-physics-survey/)
-  await expect(page.locator('li', { hasText: 'Planck Quantization' })).toBeVisible()
+  await expect(page.locator('aside li', { hasText: 'Planck Quantization' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Foundations' })).toBeVisible()
 })
 
@@ -256,14 +256,14 @@ test('context selector journey updates active mode/pack summary across modes', a
   await expect(page).toHaveURL(/viewerMode=no-context/)
   await expect(page.getByRole('status')).toContainText('Switched to No Context · Built-in')
   await expect(page.getByLabel('Active context summary')).toContainText('No Context · Built-in')
-  await expect(page.locator('li', { hasText: 'Big Bang' }).getByText('0%')).toBeVisible()
+  await expect(page.locator('aside li', { hasText: 'Big Bang' }).getByText('0%')).toBeVisible()
 
   await page.getByLabel('Context selector').selectOption('provided-context:quantum-physics-survey')
   await expect(page).toHaveURL(/viewerMode=provided-context/)
   await expect(page).toHaveURL(/subjectPack=quantum-physics-survey/)
   await expect(page.getByRole('status')).toContainText('Switched to Provided Context · Quantum Physics Survey')
   await expect(page.getByLabel('Active context summary')).toContainText('Provided Context · Quantum Physics Survey')
-  await expect(page.locator('li', { hasText: 'Planck Quantization' })).toBeVisible()
+  await expect(page.locator('aside li', { hasText: 'Planck Quantization' })).toBeVisible()
 })
 
 test('bootstraps caller-provided injected context from window config', async ({ page }) => {
@@ -301,18 +301,18 @@ test('bootstraps caller-provided injected context from window config', async ({ 
 
   await page.goto('/')
 
-  await expect(page.locator('li', { hasText: 'Custom Era One' }).getByText('35%')).toBeVisible()
-  await expect(page.locator('li', { hasText: 'Custom Era Two' }).getByText('65%')).toBeVisible()
+  await expect(page.locator('aside li', { hasText: 'Custom Era One' }).getByText('35%')).toBeVisible()
+  await expect(page.locator('aside li', { hasText: 'Custom Era Two' }).getByText('65%')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Back to Full Timeline' })).toBeVisible()
   await expect(page.getByText('Breadcrumb: Full Timeline / Custom Domain / Custom Era Two')).toBeVisible()
-  await expect(page.locator('li', { hasText: 'Big Bang' })).toHaveCount(0)
+  await expect(page.locator('aside li', { hasText: 'Big Bang' })).toHaveCount(0)
 })
 
 test('provided-context mode without subjectPack falls back with warning', async ({ page }) => {
   await page.goto('/?viewerMode=provided-context')
 
   await expect(page.getByRole('alert')).toContainText("requires a 'subjectPack' query value")
-  await expect(page.locator('li', { hasText: 'Big Bang' })).toBeVisible()
+  await expect(page.locator('aside li', { hasText: 'Big Bang' })).toBeVisible()
 })
 
 test('empty subject-pack manifest warns and keeps built-in options', async ({ page }) => {
@@ -371,13 +371,13 @@ test('malformed manifest entries are ignored while valid pack remains available'
   await expect(page.getByLabel('Context selector').locator('option')).toHaveCount(3)
   await page.getByLabel('Context selector').selectOption('provided-context:world-history-survey')
   await expect(page).toHaveURL(/subjectPack=world-history-survey/)
-  await expect(page.locator('li', { hasText: 'Neolithic Revolution' })).toBeVisible()
+  await expect(page.locator('aside li', { hasText: 'Neolithic Revolution' })).toBeVisible()
 })
 
 test('AI Genesis pack supports recursive drill-down, prerequisite sorting, and ghost jump-to-context', async ({ page }) => {
   await page.goto('/?viewerMode=provided-context&subjectPack=ai-genesis-history')
 
-  await expect(page.locator('li', { hasText: 'Large Language Models' })).toBeVisible()
+  await expect(page.locator('aside li', { hasText: 'Large Language Models' })).toBeVisible()
 
   await page.getByLabel('Subgraph sort mode').selectOption('prerequisite-order')
   const orderedLabels = await page.locator('aside li div > span.text-sm').allTextContents()
@@ -391,9 +391,9 @@ test('AI Genesis pack supports recursive drill-down, prerequisite sorting, and g
   await expect(page.getByLabel('Mission task workspace')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Complete micro task for The 1950s' })).toBeVisible()
   await page.getByRole('button', { name: 'Complete micro task for The 1950s' }).click()
-  await expect(page.locator('li', { hasText: 'The 1950s' }).getByText('25%')).toBeVisible()
+  await expect(page.locator('aside li', { hasText: 'The 1950s' }).getByText('25%')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Drill into The Dartmouth Workshop' })).toBeVisible()
-  await expect(page.locator('li', { hasText: '20th Century Foundations' })).toBeVisible()
+  await expect(page.locator('aside li', { hasText: '20th Century Foundations' })).toBeVisible()
 
   const calendarYearTick = page
     .getByTestId('timeline-canvas')

@@ -6,6 +6,7 @@ import { ProgressSidebar } from './components/ProgressSidebar'
 import { SourcePanel } from './components/SourcePanel'
 import { Timeline } from './components/Timeline'
 import type { Era } from './data/timeline-data'
+import { useKnowledgeTree } from './knowledge-tree'
 import { buildLearnerProfile } from './lesson/learner-profile'
 import type { LessonPlan } from './lesson/lesson-types'
 import { saveLessonPlan } from './lesson/lesson-types'
@@ -110,6 +111,15 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
 
   /** Active eras — generated lesson eras take priority when a lesson is loaded */
   const activeEras = generatedEras ?? resolvedContext.eras
+  const activePackId = activeLesson?.pack.id ?? currentPackId ?? 'built-in'
+
+  // Knowledge tree engine — provides prerequisite-aware recommendations and analytics
+  const { recommendations: treeRecommendations, topRecommendation: treeTopRec, analytics: treeAnalytics } = useKnowledgeTree({
+    packId: activePackId,
+    eras: activeEras,
+    progress,
+  })
+
   const initialMapCenter = useMemo<GeoCenter>(() => {
     const geoEras = activeEras.filter((e) => (e as GeoEra).geoCenter)
     if (geoEras.length === 0) return { latitude: 40, longitude: -95, zoom: 4 }
@@ -363,6 +373,13 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
   }, [progress, activeEras])
 
   const recommendedEra = useMemo(() => {
+    // Use tree-powered recommendation if available
+    if (treeTopRec) {
+      const treeMatch = activeEras.find((era) => era.id === treeTopRec.nodeId)
+      if (treeMatch) return treeMatch
+    }
+
+    // Fallback: simple lowest-progress sort
     const candidates = activeEras.filter((era) => (progress[era.id] ?? 0) < 100)
     if (candidates.length === 0) return null
 
@@ -372,7 +389,7 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
       if (leftProgress !== rightProgress) return leftProgress - rightProgress
       return right.start - left.start
     })[0]
-  }, [progress, activeEras])
+  }, [progress, activeEras, treeTopRec])
 
   const lastFocusedEra = useMemo(() => {
     if (!lastFocusedEraId) return null
@@ -385,7 +402,9 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
   const missionHeadline = selectedEra
     ? `You're currently focused on ${selectedEra.content}.`
     : missionTargetEra
-      ? `Recommended now: ${missionTargetEra.content}.`
+      ? treeTopRec
+        ? treeTopRec.reason
+        : `Recommended now: ${missionTargetEra.content}.`
       : 'No eras available in this context.'
 
   const drillContextLabel = selectedEra ? `Drill t0: ${selectedEra.content}` : null
@@ -573,6 +592,45 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
                 Next 10-minute action: {missionNextAction}
               </p>
               <p className="mt-1 text-xs text-slate-400">{momentumStats.message}</p>
+              {treeAnalytics && (
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                  <span className="rounded-full border border-indigo-800/70 bg-indigo-950/35 px-2 py-0.5 text-indigo-200">
+                    Coverage {treeAnalytics.coveragePercent}%
+                  </span>
+                  <span className="rounded-full border border-amber-800/70 bg-amber-950/30 px-2 py-0.5 text-amber-200">
+                    Mastery {treeAnalytics.masteryPercent}%
+                  </span>
+                  {treeAnalytics.acquiredSkills.length > 0 && (
+                    <span className="rounded-full border border-emerald-800/70 bg-emerald-950/30 px-2 py-0.5 text-emerald-200">
+                      Skills: {treeAnalytics.acquiredSkills.slice(0, 3).join(', ')}{treeAnalytics.acquiredSkills.length > 3 ? ` +${treeAnalytics.acquiredSkills.length - 3}` : ''}
+                    </span>
+                  )}
+                </div>
+              )}
+              {treeRecommendations.length > 1 && !selectedEra && (
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-xs text-slate-400 hover:text-slate-200">
+                    {treeRecommendations.length} recommended next steps
+                  </summary>
+                  <ul className="mt-1 space-y-0.5 text-xs text-slate-300">
+                    {treeRecommendations.map((rec) => (
+                      <li key={rec.nodeId} className="flex items-center gap-2">
+                        <span className={`inline-block h-1.5 w-1.5 rounded-full ${rec.unmetPrereqs.length === 0 ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                        <button
+                          className="text-left hover:text-cyan-200"
+                          onClick={() => {
+                            const era = activeEras.find((e) => e.id === rec.nodeId)
+                            if (era) handleSelectEra(era)
+                          }}
+                          type="button"
+                        >
+                          {rec.reason}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
               {missionTargetEra && missionTargetEra.id !== selectedEra?.id && (
                 <button
                   aria-label={`Focus mission era ${missionTargetEra.content}`}
