@@ -1,0 +1,221 @@
+name: Issue Evaluation Pipeline
+
+on:
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  actions: read
+
+jobs:
+  # ── Triage: classify the issue ────────────────────────────────────────
+  triage:
+    runs-on: ubuntu-latest
+    outputs:
+      is_bug: ${{ steps.classify.outputs.is_bug }}
+      is_feature: ${{ steps.classify.outputs.is_feature }}
+    steps:
+      - name: Classify issue
+        id: classify
+        run: |
+          LABELS='${{ toJson(github.event.issue.labels.*.name) }}'
+          TITLE='${{ github.event.issue.title }}'
+          IS_BUG=false
+          IS_FEATURE=false
+
+          # Check labels first
+          if echo "$LABELS" | grep -qi "bug"; then
+            IS_BUG=true
+          elif echo "$LABELS" | grep -qi "feature\|enhancement"; then
+            IS_FEATURE=true
+          fi
+
+          # Fallback: check title prefix
+          if [ "$IS_BUG" = "false" ] && [ "$IS_FEATURE" = "false" ]; then
+            if echo "$TITLE" | grep -qi "^\[bug\]"; then
+              IS_BUG=true
+            elif echo "$TITLE" | grep -qi "^\[feature\]"; then
+              IS_FEATURE=true
+            fi
+          fi
+
+          echo "is_bug=$IS_BUG" >> "$GITHUB_OUTPUT"
+          echo "is_feature=$IS_FEATURE" >> "$GITHUB_OUTPUT"
+
+      - name: Add triage labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = [];
+            if ('${{ steps.classify.outputs.is_bug }}' === 'true') labels.push('bug', 'auto-triage');
+            if ('${{ steps.classify.outputs.is_feature }}' === 'true') labels.push('enhancement', 'auto-triage');
+            if (labels.length === 0) labels.push('needs-triage');
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels,
+            });
+
+  # ── Feature: acknowledge and tag ──────────────────────────────────────
+  feature-evaluation:
+    needs: triage
+    if: needs.triage.outputs.is_feature == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acknowledge feature request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: [
+                '🚀 **Feature request received!**',
+                '',
+                'This has been added to the evaluation backlog.',
+                '',
+                '| Step | Status |',
+                '|------|--------|',
+                '| Triage | ✅ Classified as feature request |',
+                '| Impact assessment | 🔄 Pending review |',
+                '| Implementation | ⏳ Queued |',
+                '',
+                '_Automated by Parallax Atlas CI_',
+              ].join('\n'),
+            });
+
+  # ── Bug: validate → attempt fix → test → deploy ──────────────────────
+  bug-resolution:
+    needs: triage
+    if: needs.triage.outputs.is_bug == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install API dependencies
+        run: cd api && npm ci
+
+      - name: Post evaluation start
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: [
+                '🔍 **Bug evaluation pipeline started**',
+                '',
+                '| Step | Status |',
+                '|------|--------|',
+                '| Reproduce (lint) | 🔄 Running |',
+                '| Reproduce (build) | ⏳ Pending |',
+                '| Reproduce (E2E tests) | ⏳ Pending |',
+                '| Resolution attempt | ⏳ Pending |',
+                '| Deploy | ⏳ Pending |',
+                '',
+                `Triggered by issue #${context.issue.number}`,
+              ].join('\n'),
+            });
+
+      - name: Lint check
+        id: lint
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Build check
+        id: build
+        run: npm run build
+        env:
+          VITE_BING_MAPS_API_KEY: ${{ secrets.VITE_BING_MAPS_API_KEY }}
+        continue-on-error: true
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E tests
+        id: tests
+        run: npm run test:e2e
+        continue-on-error: true
+
+      - name: Post evaluation results
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const lintOk = '${{ steps.lint.outcome }}' === 'success';
+            const buildOk = '${{ steps.build.outcome }}' === 'success';
+            const testsOk = '${{ steps.tests.outcome }}' === 'success';
+            const allPassing = lintOk && buildOk && testsOk;
+
+            const icon = (ok) => ok ? '✅' : '❌';
+
+            const body = [
+              '📋 **Bug evaluation results**',
+              '',
+              '| Step | Status |',
+              '|------|--------|',
+              `| Lint | ${icon(lintOk)} ${lintOk ? 'Passing' : 'Failing'} |`,
+              `| Build | ${icon(buildOk)} ${buildOk ? 'Passing' : 'Failing'} |`,
+              `| E2E Tests | ${icon(testsOk)} ${testsOk ? 'Passing (all)' : 'Failing'} |`,
+              '',
+            ];
+
+            if (allPassing) {
+              body.push(
+                '✅ **All quality gates passing.** The reported issue may not be reproducible via automated checks.',
+                'A maintainer will investigate further.',
+              );
+            } else {
+              body.push(
+                '⚠️ **Quality gate failures detected.** These may be related to the reported bug.',
+                '',
+                'A resolution branch will be attempted if Copilot Workspace or a maintainer can address the failures.',
+                'Deployment is **blocked** until all tests pass.',
+              );
+            }
+
+            body.push('', '_Automated by Parallax Atlas CI_');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body.join('\n'),
+            });
+
+            // If tests are failing, add a label to signal
+            if (!allPassing) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: ['quality-gate-failure'],
+              });
+            }
+
+      # Only deploy if ALL checks pass (bug didn't break the build)
+      - name: Deploy (only if all gates pass)
+        if: steps.lint.outcome == 'success' && steps.build.outcome == 'success' && steps.tests.outcome == 'success'
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: dist
+          api_location: api
+          skip_app_build: true

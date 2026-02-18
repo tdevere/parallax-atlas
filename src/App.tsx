@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from './auth'
 import { AzureMapPanel } from './components/AzureMapPanel'
+import { FeedbackModal } from './components/FeedbackModal'
 import { LessonLauncher } from './components/LessonLauncher'
 import { NotebookPanel } from './components/NotebookPanel'
 import { ProgressSidebar } from './components/ProgressSidebar'
@@ -122,6 +123,7 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
   const [coachCollapsed, setCoachCollapsed] = useState(false)
   const [showSourcePanel, setShowSourcePanel] = useState(false)
   const [showNotebook, setShowNotebook] = useState(false)
+  const [showFeedback, setShowFeedback] = useState(false)
   const notebookStore = useMemo(() => new NotebookStore(), [])
   const [notebookEntries, setNotebookEntries] = useState<NotebookEntry[]>(() => notebookStore.load())
   const [showLessonLauncher, setShowLessonLauncher] = useState(false)
@@ -576,6 +578,14 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
             >
               📓 Notebook{notebookEntries.length > 0 ? ` (${notebookEntries.length})` : ''}
             </button>
+            <button
+              aria-label="Send feedback"
+              className="rounded border border-slate-600 bg-slate-800 px-2 py-0.5 text-xs text-slate-300 hover:border-violet-500 hover:text-violet-300 transition"
+              onClick={() => setShowFeedback(true)}
+              type="button"
+            >
+              💬 Feedback
+            </button>
             <button className="rounded border border-slate-600 px-2 py-0.5 text-xs md:hidden" onClick={() => setSidebarOpen((current) => !current)} type="button">
               {sidebarOpen ? 'Hide Controls' : 'Show Controls'}
             </button>
@@ -930,6 +940,12 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
           onLessonReady={handleLessonReady}
         />
       )}
+      <FeedbackModal
+        open={showFeedback}
+        onClose={() => setShowFeedback(false)}
+        isAuthenticated={auth.isAuthenticated}
+        appContext={`context=${selectedContextControl}${selectedEra ? ` era=${selectedEra.id}` : ''}`}
+      />
     </div>
   )
 }
