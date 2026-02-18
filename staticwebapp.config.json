@@ -1,16 +1,4 @@
 {
-  "auth": {
-    "identityProviders": {
-      "azureActiveDirectory": {
-        "registration": {
-          "openIdIssuer": "https://login.microsoftonline.com/9188040d-6c67-4c5b-b112-36a304b66dad/v2.0",
-          "clientIdSettingName": "AZURE_CLIENT_ID",
-          "clientSecretSettingName": "AZURE_CLIENT_SECRET"
-        },
-        "userDetailsClaim": "preferred_username"
-      }
-    }
-  },
   "navigationFallback": {
     "rewrite": "/index.html",
     "exclude": ["/assets/*", "/vite.svg", "/subject-packs/*", "/api/*", "/.auth/*"]
@@ -30,14 +18,6 @@
     {
       "route": "/api/*",
       "allowedRoles": ["authenticated"]
-    },
-    {
-      "route": "/.auth/login/github",
-      "statusCode": 404
-    },
-    {
-      "route": "/.auth/login/twitter",
-      "statusCode": 404
     }
   ],
   "mimeTypes": {
