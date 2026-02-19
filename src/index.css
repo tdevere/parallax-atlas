@@ -148,16 +148,16 @@ body {
 }
 
 /* When the civ map is active, make the vis-timeline slightly transparent
-   so the region grid shows through as a background layer */
+   so the geographic map shows through as a background layer */
 .civ-map-backdrop + div .vis-timeline {
-  background-color: rgba(2, 6, 23, 0.72) !important;
+  background-color: rgba(2, 6, 23, 0.68) !important;
 }
 
 .civ-map-backdrop + div .vis-panel.vis-center {
   background-color: transparent !important;
 }
 
-/* Mastered-cell glow animation */
+/* Mastered-region / mastered-era glow animation */
 .civ-mastered-glow {
   animation: civ-glow-pulse 2.5s ease-in-out infinite;
 }
@@ -167,8 +167,15 @@ body {
   50% { opacity: 1; }
 }
 
-/* Cell hover hint — just a subtle brightness boost */
-.civ-cell:hover rect:first-child {
-  filter: brightness(1.3) !important;
+/* Region hover — subtle brightness boost on continent fills */
+.civ-region:hover .civ-region-fill {
+  filter: brightness(1.25) saturate(1.1) !important;
+  transition: filter 0.2s ease;
+}
+
+/* Era light hover — enlarge slightly */
+.civ-era-light:hover circle {
+  transform-origin: center;
+  filter: brightness(1.3);
   transition: filter 0.15s ease;
 }

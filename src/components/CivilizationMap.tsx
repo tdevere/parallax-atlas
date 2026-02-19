@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import type { Era, WorldRegion } from '../data/timeline-data'
-import { REGION_COLORS, WORLD_REGIONS, resolveEraRegion, formatYearsAgo } from '../data/timeline-data'
+import { REGION_COLORS, WORLD_REGIONS, resolveEraRegion } from '../data/timeline-data'
+import { REGION_PATHS } from '../data/world-regions-geo'
 
 interface CivilizationMapProps {
   eras: Era[]
@@ -9,290 +10,275 @@ interface CivilizationMapProps {
   height: number
 }
 
-// ── Time column breakpoints (years ago) ────────────────────────────────
-// These define the columns in the Schofield-style grid.
-// Denser columns for recent history where more civilizations overlap.
-const TIME_COLUMNS: { start: number; end: number; label: string }[] = [
-  { start: 14e9, end: 4e9, label: '14–4 Bya' },
-  { start: 4e9, end: 500e6, label: '4 Bya–500 Mya' },
-  { start: 500e6, end: 50e6, label: '500–50 Mya' },
-  { start: 50e6, end: 1e6, label: '50–1 Mya' },
-  { start: 1e6, end: 100000, label: '1 Mya–100k' },
-  { start: 100000, end: 12000, label: '100k–12k' },
-  { start: 12000, end: 5000, label: '12k–5k' },
-  { start: 5000, end: 3000, label: '5k–3k' },
-  { start: 3000, end: 2000, label: '3000 BC–AD 1' },
-  { start: 2000, end: 1000, label: 'AD 1–1000' },
-  { start: 1000, end: 500, label: '1000–1500' },
-  { start: 500, end: 250, label: '1500–1776' },
-  { start: 250, end: 100, label: '1776–1926' },
-  { start: 100, end: 0, label: '1926–Today' },
-]
-
-interface CellData {
+// ── Per-region progress aggregation ────────────────────────────────────
+interface RegionStats {
   region: WorldRegion
-  colIndex: number
-  eras: { era: Era; progress: number }[]
+  eraCount: number
   avgProgress: number
-  maxProgress: number
-  label: string
+  studiedCount: number
+  masteredCount: number
+}
+
+// ── Era light — a studied era plotted at its geoCenter ─────────────────
+interface EraLight {
+  era: Era
+  progress: number
+  region: WorldRegion
+  /** SVG x in equirectangular coords (= longitude) */
+  cx: number
+  /** SVG y in equirectangular coords (= -latitude) */
+  cy: number
 }
 
 /**
- * CivilizationMap — A Schofield & Sims-inspired region × time grid that
- * progressively reveals as the learner studies. Unstudied cells are dark
- * and muted; studied cells fill with vibrant region colors.
+ * CivilizationMap — A Natural Earth geographic map that progressively
+ * reveals continent silhouettes as the learner studies eras in each region.
+ * Unstudied regions are barely visible; studied regions glow with vibrant
+ * region colors. Individual era "knowledge lights" appear at geoCenter
+ * locations for studied eras.
  */
 export function CivilizationMap({ eras, progress, width, height }: CivilizationMapProps) {
-  const cells = useMemo(() => {
-    const result: CellData[] = []
+  // Aggregate progress per region
+  const regionStats = useMemo<RegionStats[]>(() => {
+    const map = new Map<WorldRegion, { total: number; count: number; studied: number; mastered: number }>()
+    for (const r of WORLD_REGIONS) map.set(r, { total: 0, count: 0, studied: 0, mastered: 0 })
 
-    for (const region of WORLD_REGIONS) {
-      for (let colIndex = 0; colIndex < TIME_COLUMNS.length; colIndex++) {
-        const col = TIME_COLUMNS[colIndex]
-        // Find eras that overlap this region × time cell
-        const matching = eras
-          .filter((era) => {
-            const eraRegion = resolveEraRegion(era)
-            if (eraRegion !== region && eraRegion !== 'Global') return false
-            // Era overlaps column if era.start >= col.end AND era.end <= col.start
-            return era.start >= col.end && era.end <= col.start
-          })
-          .map((era) => ({ era, progress: progress[era.id] ?? 0 }))
-
-        const progressValues = matching.map((m) => m.progress)
-        const avgProgress = progressValues.length > 0
-          ? Math.round(progressValues.reduce((s, v) => s + v, 0) / progressValues.length)
-          : 0
-        const maxProgress = progressValues.length > 0
-          ? Math.max(...progressValues)
-          : 0
-
-        // Only include cells that have at least one era
-        if (matching.length > 0) {
-          // Pick the most progressed era as the label, or the first alphabetically
-          const bestEra = [...matching].sort((a, b) => b.progress - a.progress || a.era.content.localeCompare(b.era.content))[0]
-          result.push({
-            region,
-            colIndex,
-            eras: matching,
-            avgProgress,
-            maxProgress,
-            label: bestEra?.era.content ?? '',
-          })
+    for (const era of eras) {
+      const region = resolveEraRegion(era)
+      const p = progress[era.id] ?? 0
+      if (region === 'Global') {
+        // Global eras contribute to every region
+        for (const r of WORLD_REGIONS) {
+          const s = map.get(r)!
+          s.total += p; s.count++
+          if (p > 0) s.studied++
+          if (p >= 100) s.mastered++
+        }
+      } else {
+        const s = map.get(region)
+        if (s) {
+          s.total += p; s.count++
+          if (p > 0) s.studied++
+          if (p >= 100) s.mastered++
         }
       }
     }
-    return result
+
+    return WORLD_REGIONS.map((region) => {
+      const s = map.get(region)!
+      return {
+        region,
+        eraCount: s.count,
+        avgProgress: s.count > 0 ? Math.round(s.total / s.count) : 0,
+        studiedCount: s.studied,
+        masteredCount: s.mastered,
+      }
+    })
   }, [eras, progress])
 
-  // Layout constants
-  const leftLabelWidth = 90
-  const topLabelHeight = 32
-  const gridWidth = width - leftLabelWidth
-  const gridHeight = height - topLabelHeight
-  const colWidth = gridWidth / TIME_COLUMNS.length
-  const rowHeight = gridHeight / WORLD_REGIONS.length
+  // Collect "knowledge light" dots for studied eras with geoCenter
+  const eraLights = useMemo<EraLight[]>(() => {
+    const lights: EraLight[] = []
+    for (const era of eras) {
+      const p = progress[era.id] ?? 0
+      if (p <= 0 || !era.geoCenter) continue
+      lights.push({
+        era,
+        progress: p,
+        region: resolveEraRegion(era),
+        cx: era.geoCenter.longitude,
+        cy: -era.geoCenter.latitude, // SVG y is inverted
+      })
+    }
+    return lights
+  }, [eras, progress])
+
+  // The SVG viewBox uses equirectangular projection: x=lng, y=-lat
+  // We crop slightly to exclude extreme polar regions and center nicely
+  const vbMinX = -180
+  const vbMinY = -80 // ~80°N
+  const vbW = 360
+  const vbH = 160 // 80°N to 80°S
 
   return (
     <svg
       aria-label="Civilization progress map"
       className="civilization-map"
       height={height}
+      preserveAspectRatio="xMidYMid slice"
       role="img"
-      viewBox={`0 0 ${width} ${height}`}
+      viewBox={`${vbMinX} ${vbMinY} ${vbW} ${vbH}`}
       width={width}
     >
       <defs>
-        {/* Subtle noise filter for a parchment-like feel */}
-        <filter id="civ-noise">
-          <feTurbulence baseFrequency="0.65" numOctaves="3" result="noise" type="fractalNoise" />
-          <feColorMatrix in="noise" result="monoNoise" type="saturate" values="0" />
-          <feBlend in="SourceGraphic" in2="monoNoise" mode="multiply" />
+        {/* Glow filter for knowledge lights */}
+        <filter id="era-glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="1.8" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
         </filter>
+        {/* Broader glow for mastered regions */}
+        <filter id="region-glow" x="-10%" y="-10%" width="120%" height="120%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        {/* Subtle graticule pattern */}
+        <pattern id="graticule" width="30" height="30" patternUnits="userSpaceOnUse">
+          <line x1="15" y1="0" x2="15" y2="30" stroke="#1e293b" strokeWidth="0.15" />
+          <line x1="0" y1="15" x2="30" y2="15" stroke="#1e293b" strokeWidth="0.15" />
+        </pattern>
       </defs>
 
-      {/* Background */}
-      <rect fill="#020617" height={height} width={width} x="0" y="0" />
+      {/* Deep ocean background */}
+      <rect fill="#020617" height={vbH} width={vbW} x={vbMinX} y={vbMinY} />
 
-      {/* Region row labels (left axis) */}
-      {WORLD_REGIONS.map((region, rowIndex) => {
-        const y = topLabelHeight + rowIndex * rowHeight
-        const colors = REGION_COLORS[region]
+      {/* Subtle graticule grid — gives the ocean texture */}
+      <rect fill="url(#graticule)" height={vbH} opacity="0.6" width={vbW} x={vbMinX} y={vbMinY} />
+
+      {/* ── Continent silhouettes ── */}
+      {regionStats.map((stats) => {
+        const pathData = REGION_PATHS[stats.region]
+        if (!pathData) return null
+        const colors = REGION_COLORS[stats.region]
+        const frac = stats.avgProgress / 100
+
+        // Progressive reveal: near-invisible when unstudied → vivid when mastered
+        const baseOpacity = 0.07
+        const revealOpacity = baseOpacity + frac * 0.73
+        const saturation = 0.12 + frac * 0.88
+
         return (
-          <g key={region}>
-            {/* Row background band */}
-            <rect
-              fill={colors.muted}
-              height={rowHeight}
-              opacity="0.15"
-              width={gridWidth}
-              x={leftLabelWidth}
-              y={y}
+          <g className="civ-region" key={stats.region}>
+            {/* Faint outline so continent shape is always slightly visible */}
+            <path
+              d={pathData}
+              fill="none"
+              opacity={0.2}
+              stroke={colors.fill}
+              strokeWidth="0.3"
             />
-            {/* Row border */}
-            <line
-              stroke="#1e293b"
-              strokeWidth="0.5"
-              x1={leftLabelWidth}
-              x2={width}
-              y1={y}
-              y2={y}
-            />
-            {/* Label */}
-            <text
-              dominantBaseline="middle"
+
+            {/* Continent fill — reveals with progress */}
+            <path
+              className="civ-region-fill"
+              d={pathData}
               fill={colors.fill}
-              fontSize="11"
-              fontWeight="600"
-              opacity="0.85"
-              textAnchor="end"
-              x={leftLabelWidth - 8}
-              y={y + rowHeight / 2}
-            >
-              {colors.label}
-            </text>
-          </g>
-        )
-      })}
-
-      {/* Time column labels (top axis) */}
-      {TIME_COLUMNS.map((col, colIndex) => {
-        const x = leftLabelWidth + colIndex * colWidth
-        return (
-          <g key={col.label}>
-            {/* Column border */}
-            <line
-              stroke="#1e293b"
-              strokeWidth="0.5"
-              x1={x}
-              x2={x}
-              y1={topLabelHeight}
-              y2={height}
-            />
-            {/* Label */}
-            <text
-              dominantBaseline="hanging"
-              fill="#94a3b8"
-              fontSize="8"
-              textAnchor="middle"
-              x={x + colWidth / 2}
-              y={4}
-            >
-              {formatYearsAgo(col.start)}
-            </text>
-          </g>
-        )
-      })}
-
-      {/* Civilization cells — the progressive reveal layer */}
-      {cells.map((cell) => {
-        const rowIndex = WORLD_REGIONS.indexOf(cell.region)
-        const x = leftLabelWidth + cell.colIndex * colWidth
-        const y = topLabelHeight + rowIndex * rowHeight
-        const colors = REGION_COLORS[cell.region]
-
-        // Progress drives reveal: 0% → near invisible, 100% → fully vivid
-        const progressFraction = cell.avgProgress / 100
-        const baseOpacity = 0.06
-        const revealOpacity = baseOpacity + progressFraction * 0.74
-        const saturation = 0.15 + progressFraction * 0.85
-        const cellPad = 1.5
-
-        return (
-          <g className="civ-cell" key={`${cell.region}-${cell.colIndex}`}>
-            {/* Cell fill — reveals with progress */}
-            <rect
-              fill={colors.fill}
-              height={rowHeight - cellPad * 2}
               opacity={revealOpacity}
-              rx="3"
-              ry="3"
               style={{
-                transition: 'opacity 0.6s ease, filter 0.6s ease',
+                transition: 'opacity 0.8s ease, filter 0.8s ease',
                 filter: `saturate(${saturation})`,
               }}
-              width={colWidth - cellPad * 2}
-              x={x + cellPad}
-              y={y + cellPad}
             />
 
-            {/* Progress bar along bottom edge */}
-            {cell.avgProgress > 0 && (
-              <rect
-                fill={colors.fill}
-                height="2.5"
-                opacity={0.5 + progressFraction * 0.5}
-                rx="1"
-                width={(colWidth - cellPad * 4) * progressFraction}
-                x={x + cellPad * 2}
-                y={y + rowHeight - cellPad - 4}
-              />
-            )}
-
-            {/* Label — only visible when progress > 15% */}
-            {cell.avgProgress > 15 && (
-              <text
-                dominantBaseline="middle"
-                fill="#f8fafc"
-                fontSize={colWidth < 60 ? '7' : '9'}
-                fontWeight="500"
-                opacity={Math.min(1, 0.3 + progressFraction * 0.7)}
-                style={{ transition: 'opacity 0.5s ease' }}
-                textAnchor="middle"
-                x={x + colWidth / 2}
-                y={y + rowHeight / 2 - 4}
-              >
-                {cell.label.length > 16 ? cell.label.slice(0, 14) + '…' : cell.label}
-              </text>
-            )}
-
-            {/* Era count badge — shows when multiple eras in cell */}
-            {cell.eras.length > 1 && cell.avgProgress > 10 && (
-              <text
-                dominantBaseline="middle"
-                fill={colors.fill}
-                fontSize="7"
-                fontWeight="700"
-                opacity={0.5 + progressFraction * 0.5}
-                textAnchor="middle"
-                x={x + colWidth / 2}
-                y={y + rowHeight / 2 + 8}
-              >
-                {cell.eras.length} eras · {cell.avgProgress}%
-              </text>
-            )}
-
-            {/* Mastery glow for 100% cells */}
-            {cell.avgProgress >= 100 && (
-              <rect
+            {/* Extra glow layer for mastered regions */}
+            {stats.avgProgress >= 80 && (
+              <path
                 className="civ-mastered-glow"
-                fill="none"
-                height={rowHeight - cellPad * 2}
-                rx="3"
-                ry="3"
-                stroke="#fcd34d"
-                strokeWidth="1.5"
-                width={colWidth - cellPad * 2}
-                x={x + cellPad}
-                y={y + cellPad}
+                d={pathData}
+                fill={colors.fill}
+                filter="url(#region-glow)"
+                opacity={0.25 + (stats.avgProgress - 80) * 0.0125}
               />
+            )}
+
+            {/* Region label — appears when some progress exists */}
+            {stats.avgProgress > 5 && (
+              <text
+                className="civ-region-label"
+                dominantBaseline="middle"
+                fill={colors.fill}
+                fontSize="5"
+                fontWeight="700"
+                opacity={Math.min(0.9, 0.3 + frac * 0.6)}
+                style={{ transition: 'opacity 0.6s ease' }}
+                textAnchor="middle"
+                x={regionLabelPos(stats.region).x}
+                y={regionLabelPos(stats.region).y}
+              >
+                {colors.label} · {stats.avgProgress}%
+              </text>
             )}
           </g>
         )
       })}
 
-      {/* Grid outer border */}
-      <rect
-        fill="none"
-        height={gridHeight}
-        rx="4"
-        stroke="#334155"
-        strokeWidth="1"
-        width={gridWidth}
-        x={leftLabelWidth}
-        y={topLabelHeight}
-      />
+      {/* ── Knowledge lights — individual era study markers ── */}
+      {eraLights.map((light) => {
+        const colors = REGION_COLORS[light.region] ?? REGION_COLORS.Global
+        const frac = light.progress / 100
+        const radius = 0.8 + frac * 1.2
+
+        return (
+          <g className="civ-era-light" key={light.era.id}>
+            {/* Glow halo */}
+            <circle
+              cx={light.cx}
+              cy={light.cy}
+              fill={colors.fill}
+              filter="url(#era-glow)"
+              opacity={0.15 + frac * 0.35}
+              r={radius * 2.5}
+            />
+            {/* Core dot */}
+            <circle
+              cx={light.cx}
+              cy={light.cy}
+              fill="#f8fafc"
+              opacity={0.5 + frac * 0.5}
+              r={radius}
+              style={{ transition: 'r 0.4s ease, opacity 0.4s ease' }}
+            />
+            {/* Era label for well-studied eras */}
+            {light.progress >= 25 && (
+              <text
+                dominantBaseline="hanging"
+                fill="#f8fafc"
+                fontSize="2.5"
+                fontWeight="500"
+                opacity={Math.min(0.9, 0.2 + frac * 0.7)}
+                style={{ transition: 'opacity 0.5s ease' }}
+                textAnchor="middle"
+                x={light.cx}
+                y={light.cy + radius + 1.5}
+              >
+                {light.era.content.length > 20
+                  ? light.era.content.slice(0, 18) + '…'
+                  : light.era.content}
+              </text>
+            )}
+            {/* Gold ring for mastered eras */}
+            {light.progress >= 100 && (
+              <circle
+                className="civ-mastered-glow"
+                cx={light.cx}
+                cy={light.cy}
+                fill="none"
+                r={radius + 0.6}
+                stroke="#fcd34d"
+                strokeWidth="0.4"
+              />
+            )}
+          </g>
+        )
+      })}
     </svg>
   )
+}
+
+// ── Approximate label positions per region (equirectangular coords) ───
+function regionLabelPos(region: WorldRegion): { x: number; y: number } {
+  switch (region) {
+    case 'Africa': return { x: 20, y: 5 }
+    case 'Americas': return { x: -90, y: 10 }
+    case 'Asia': return { x: 90, y: -30 }
+    case 'Australasia': return { x: 134, y: 28 }
+    case 'Europe': return { x: 15, y: -50 }
+    case 'Middle East': return { x: 45, y: -28 }
+    default: return { x: 0, y: 0 }
+  }
 }
