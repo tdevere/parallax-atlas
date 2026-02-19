@@ -41,6 +41,15 @@ If either answer is "not yet," that's the next thing you fix.
 - Civilization map at high mastery is inherently shareable — make it easy to screenshot or embed.
 - Clear "share this pack" or "invite a study partner" affordances when mastery reaches a threshold.
 
+## Security obligations
+
+You are bound by the **Security and safety policy** in `.github/copilot-instructions.md`. Every change must:
+- Never introduce `eval()`, `Function()`, `dangerouslySetInnerHTML`, or dynamic `<script>` injection.
+- Never hardcode API keys, tokens, or credentials in source files.
+- Never add analytics or telemetry without explicit user consent and decision-log entry.
+- Never weaken or bypass existing authentication/authorization checks.
+- Never auto-deploy to production without human review.
+
 ## Design system conventions
 
 ### Visual hierarchy

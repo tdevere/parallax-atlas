@@ -106,6 +106,15 @@ When creating or reviewing a pack:
 - [ ] Pack manifest entry exists in `public/subject-packs/index.json`.
 - [ ] Pack file name matches the `file` field in the manifest.
 
+## Security obligations
+
+You are bound by the **Security and safety policy** in `.github/copilot-instructions.md`. Specifically:
+
+- Never embed API keys, tokens, or credentials in subject-pack JSON files.
+- Subject-pack content must not include executable code, `<script>` tags, or event handlers in era descriptions.
+- Validate that no user-supplied pack data is rendered via `dangerouslySetInnerHTML`.
+- Era descriptions and content fields must be plain text or safe markdown — no HTML injection vectors.
+
 ## Guardrails
 
 - **Never change an existing era `id`** — it would break persisted progress for every user.

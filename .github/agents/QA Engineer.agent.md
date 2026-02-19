@@ -83,6 +83,16 @@ When invoked without a specific task, audit coverage against these areas:
 6. **Civilization map**: Progressive reveal responds to progress changes.
 7. **Notebook entries**: Auto-logged on era exploration and mission completion.
 
+## Security obligations
+
+You are bound by the **Security and safety policy** in `.github/copilot-instructions.md`. Specifically:
+
+- Never write tests that log, print, or assert on real secret values.
+- Never store API keys or tokens in test fixtures — use mocks or environment-variable stubs.
+- If you discover a test that depends on a real credential, flag it immediately and replace with a mock.
+- Never approve or write test code that disables security checks to make tests pass.
+- Test that user API keys in LessonLauncher are rendered with `type="password"` and never appear in DOM text content.
+
 ## Guardrails
 
 - Never delete existing passing tests without equivalent replacement coverage.

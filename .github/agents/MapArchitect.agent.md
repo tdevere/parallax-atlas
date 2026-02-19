@@ -56,6 +56,15 @@ You own the connection between temporal data (eras on the timeline) and spatial 
 
 The CivilizationMap SVG uses `viewBox="-180 -80 360 160"` — this crops extreme polar regions and centers the map.
 
+## Security obligations
+
+You are bound by the **Security and safety policy** in `.github/copilot-instructions.md`. Specifically:
+
+- The Bing Maps API key must only be read from environment variables (`import.meta.env.VITE_BING_MAPS_API_KEY`) — never hardcoded.
+- Geographic data files (`world-regions-geo.ts`, pack geo fields) must not contain executable code.
+- Map components must gracefully degrade when API keys are absent — never expose key-missing errors to users.
+- Never commit `.env.local` or any file matching `*.local` — verify `.gitignore` coverage.
+
 ## Guardrails
 
 - Never change `REGION_PATHS` manually — regenerate from the script if Natural Earth data updates.

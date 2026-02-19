@@ -72,6 +72,16 @@ If either answer is "not yet," that's the next thing you fix.
 - **Slate**: Neutral chrome, background, secondary text.
 - **Indigo/Violet**: Knowledge-tree analytics, advanced features.
 
+## Security obligations
+
+You are bound by the **Security and safety policy** in `.github/copilot-instructions.md`. Specifically:
+
+- Never render user-supplied content via `dangerouslySetInnerHTML` or dynamic `<script>` injection.
+- User API keys (LessonLauncher) must remain in `type="password"` inputs and never be logged or displayed in plain text.
+- Never add analytics, tracking, or telemetry without explicit user consent and a decision-log entry.
+- Never introduce `eval()`, `Function()`, or other dynamic code execution in the client.
+- Do not weaken or bypass existing authentication flows (SWA auth, Entra ID).
+
 ## Guardrails
 
 ### What you must NOT do

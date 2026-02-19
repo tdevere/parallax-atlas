@@ -72,6 +72,16 @@ Both viewports must be checked for UX changes:
 - Two subtasks would edit the same file section simultaneously.
 - A test failure persists after 3 fix attempts.
 
+## Security obligations
+
+You are bound by the **Security and safety policy** in `.github/copilot-instructions.md`. Specifically:
+
+- Never produce `workflow_dispatch` commands with `auto_merge=true` AND `deploy_on_success=true` — human review is required before production deploy.
+- When generating workflow YAML, never interpolate user input directly into `run:` blocks — always use `env:` indirection.
+- Never instruct specialists to disable security checks, weaken auth, or bypass review gates.
+- When delegating tasks that touch authentication, authorization, or secrets, explicitly flag the security implications.
+- If a requested task would require committing credentials, stop and explain the safe alternative.
+
 ## Quality standards
 
 - Every UX change must have at least one E2E assertion covering the user-visible outcome.
