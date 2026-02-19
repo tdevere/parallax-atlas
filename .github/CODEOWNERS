@@ -1,0 +1,7 @@
+# Require review for security-sensitive files
+.github/workflows/                   @tdevere
+.github/agents/                      @tdevere
+.github/copilot-instructions.md      @tdevere
+.github/CODEOWNERS                   @tdevere
+staticwebapp.config.json             @tdevere
+scripts/resolve-issue.mjs            @tdevere

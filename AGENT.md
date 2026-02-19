@@ -26,6 +26,10 @@ Continue implementation autonomously in small, safe increments. Do not stop to a
 - A requested action would violate policy or break core guarantees.
 
 ## Guardrails
+- **Follow the Security and safety policy in `.github/copilot-instructions.md` at all times.**
+- Never commit secrets, API keys, or credentials. If a task requires a credential, use GitHub Secrets or `.env.local`.
+- Never generate code that introduces `eval()`, `Function()`, `dangerouslySetInnerHTML`, or dynamic `<script>` injection.
+- Never auto-deploy to production — local agent loops commit to branches; human review gates merges.
 - Do not remove existing runtime modes or persistence boundaries.
 - Do not replace resilient selectors in E2E with brittle geometry-based checks.
 - Do not claim behavior unless observed via tests or runtime output.

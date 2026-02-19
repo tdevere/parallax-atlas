@@ -11,6 +11,7 @@
         "start": 12000,
         "end": 8000,
         "group": "Agrarian Civilizations",
+        "region": "Middle East",
         "description": "Independent transitions to farming and settled life in multiple regions.",
         "geoCenter": {
           "latitude": 37.2231,
@@ -53,6 +54,7 @@
         "start": 5500,
         "end": 4200,
         "group": "Agrarian Civilizations",
+        "region": "Middle East",
         "description": "Urbanization, writing systems, and early state institutions emerge.",
         "geoCenter": {
           "latitude": 31.3228,
@@ -95,6 +97,7 @@
         "start": 2900,
         "end": 2300,
         "group": "Classical Networks",
+        "region": "Middle East",
         "description": "Major philosophical and ethical traditions form across Afro-Eurasia.",
         "geoCenter": {
           "latitude": 34,
@@ -129,6 +132,7 @@
         "start": 2300,
         "end": 1600,
         "group": "Classical Networks",
+        "region": "Europe",
         "description": "Large imperial systems intensify administration, law, and exchange.",
         "geoCenter": {
           "latitude": 41.9028,
@@ -170,6 +174,7 @@
         "start": 1800,
         "end": 600,
         "group": "Classical Networks",
+        "region": "Asia",
         "description": "Silk Roads and Indian Ocean routes spread goods, ideas, and technologies.",
         "geoCenter": {
           "latitude": 39.6542,
@@ -204,6 +209,7 @@
         "start": 1100,
         "end": 450,
         "group": "Early Modern Transformations",
+        "region": "Asia",
         "description": "Technological shifts reshape warfare, literacy, and maritime expansion.",
         "geoCenter": {
           "latitude": 34.2658,
@@ -244,6 +250,7 @@
         "start": 500,
         "end": 300,
         "group": "Early Modern Transformations",
+        "region": "Europe",
         "description": "Systematic experimentation and mathematical modeling transform natural philosophy.",
         "geoCenter": {
           "latitude": 51.5074,
@@ -286,6 +293,7 @@
         "start": 260,
         "end": 180,
         "group": "Industrial & Modern",
+        "region": "Europe",
         "description": "Constitutional and anti-colonial revolutions reshape political legitimacy.",
         "geoCenter": {
           "latitude": 48.8566,
@@ -327,6 +335,7 @@
         "start": 260,
         "end": 140,
         "group": "Industrial & Modern",
+        "region": "Europe",
         "description": "Mechanization, fossil energy, and factory systems transform production and society.",
         "geoCenter": {
           "latitude": 53.4808,
@@ -370,6 +379,7 @@
         "start": 110,
         "end": 78,
         "group": "Industrial & Modern",
+        "region": "Europe",
         "description": "Global conflicts reshape borders, institutions, and technological trajectories.",
         "geoCenter": {
           "latitude": 49.16,
@@ -412,6 +422,7 @@
         "start": 80,
         "end": 30,
         "group": "Contemporary Global Era",
+        "region": "Africa",
         "description": "Newly independent states and postcolonial orders emerge across the globe.",
         "geoCenter": {
           "latitude": 8.7832,
@@ -446,6 +457,7 @@
         "start": 40,
         "end": 0,
         "group": "Contemporary Global Era",
+        "region": "Americas",
         "description": "Networked computing and global information systems reshape economy and culture.",
         "geoCenter": {
           "latitude": 37.3861,
@@ -483,6 +495,156 @@
             "snippet": "Seminal trilogy analyzing how information technology reshapes social and economic structures."
           }
         ]
+      },
+      {
+        "id": "indus-valley",
+        "content": "Indus Valley Civilization",
+        "start": 5300,
+        "end": 3300,
+        "group": "Agrarian Civilizations",
+        "region": "Asia",
+        "description": "Advanced urban planning and trade in the Indus-Sarasvati basin.",
+        "geoCenter": { "latitude": 27.3, "longitude": 68.0, "zoom": 6 }
+      },
+      {
+        "id": "shang-dynasty",
+        "content": "Shang Dynasty",
+        "start": 3600,
+        "end": 3050,
+        "group": "Agrarian Civilizations",
+        "region": "Asia",
+        "description": "Bronze Age Chinese state with oracle bone writing and ancestor ritual.",
+        "geoCenter": { "latitude": 34.8, "longitude": 114.3, "zoom": 6 }
+      },
+      {
+        "id": "maurya-gupta",
+        "content": "Maurya & Gupta Empires",
+        "start": 2320,
+        "end": 1500,
+        "group": "Classical Networks",
+        "region": "Asia",
+        "description": "Pan-Indian empires advance governance, science, and Buddhism.",
+        "geoCenter": { "latitude": 25.6, "longitude": 85.1, "zoom": 5 }
+      },
+      {
+        "id": "mali-empire",
+        "content": "Mali Empire",
+        "start": 800,
+        "end": 426,
+        "group": "Early Modern Transformations",
+        "region": "Africa",
+        "description": "West African empire renowned for trade, scholarship, and Timbuktu.",
+        "geoCenter": { "latitude": 14.0, "longitude": -5.0, "zoom": 5 }
+      },
+      {
+        "id": "nok-culture",
+        "content": "Nok Culture",
+        "start": 2500,
+        "end": 1700,
+        "group": "Classical Networks",
+        "region": "Africa",
+        "description": "Early Sub-Saharan iron smelting and terracotta sculpture tradition.",
+        "geoCenter": { "latitude": 9.7, "longitude": 8.0, "zoom": 6 }
+      },
+      {
+        "id": "mesoamerica",
+        "content": "Mesoamerican Civilizations",
+        "start": 3500,
+        "end": 500,
+        "group": "Classical Networks",
+        "region": "Americas",
+        "description": "Olmec, Maya, and Aztec cultures develop writing, calendars, and monumental architecture.",
+        "geoCenter": { "latitude": 19.4, "longitude": -99.1, "zoom": 5 }
+      },
+      {
+        "id": "inca-empire",
+        "content": "Inca Empire",
+        "start": 570,
+        "end": 490,
+        "group": "Early Modern Transformations",
+        "region": "Americas",
+        "description": "Largest pre-Columbian empire — road networks, quipu records, and terrace farming.",
+        "geoCenter": { "latitude": -13.5, "longitude": -72.0, "zoom": 5 }
+      },
+      {
+        "id": "mongol-empire",
+        "content": "Mongol Empire",
+        "start": 820,
+        "end": 628,
+        "group": "Early Modern Transformations",
+        "region": "Asia",
+        "description": "The largest contiguous land empire connecting East Asia to Europe.",
+        "geoCenter": { "latitude": 47.9, "longitude": 106.9, "zoom": 4 }
+      },
+      {
+        "id": "ottoman-empire",
+        "content": "Ottoman Empire",
+        "start": 727,
+        "end": 103,
+        "group": "Early Modern Transformations",
+        "region": "Middle East",
+        "description": "Multi-ethnic empire bridging Europe, Asia, and Africa for over six centuries.",
+        "geoCenter": { "latitude": 41.0, "longitude": 29.0, "zoom": 5 }
+      },
+      {
+        "id": "qing-dynasty",
+        "content": "Qing Dynasty",
+        "start": 382,
+        "end": 114,
+        "group": "Early Modern Transformations",
+        "region": "Asia",
+        "description": "China's last imperial dynasty — territorial expansion, population boom, and eventual crisis.",
+        "geoCenter": { "latitude": 39.9, "longitude": 116.4, "zoom": 5 }
+      },
+      {
+        "id": "aboriginal-australia",
+        "content": "Aboriginal Australian Cultures",
+        "start": 65000,
+        "end": 250,
+        "group": "Agrarian Civilizations",
+        "region": "Australasia",
+        "description": "The world's oldest continuous cultures — Dreamtime, fire-stick farming, and oral tradition.",
+        "geoCenter": { "latitude": -25.3, "longitude": 131.0, "zoom": 4 }
+      },
+      {
+        "id": "mughal-india",
+        "content": "Mughal Empire",
+        "start": 500,
+        "end": 168,
+        "group": "Early Modern Transformations",
+        "region": "Asia",
+        "description": "Indo-Islamic empire building the Taj Mahal and governing diverse South Asian peoples.",
+        "geoCenter": { "latitude": 27.2, "longitude": 78.0, "zoom": 5 }
+      },
+      {
+        "id": "transatlantic-slave-trade",
+        "content": "Transatlantic Slave Trade",
+        "start": 500,
+        "end": 160,
+        "group": "Early Modern Transformations",
+        "region": "Africa",
+        "description": "Forced migration reshaping demographics and economies across three continents.",
+        "geoCenter": { "latitude": 6.5, "longitude": -3.0, "zoom": 4 }
+      },
+      {
+        "id": "meiji-japan",
+        "content": "Meiji Restoration",
+        "start": 158,
+        "end": 114,
+        "group": "Industrial & Modern",
+        "region": "Asia",
+        "description": "Japan's rapid modernization transforming a feudal society into an industrial power.",
+        "geoCenter": { "latitude": 35.7, "longitude": 139.7, "zoom": 6 }
+      },
+      {
+        "id": "cold-war",
+        "content": "Cold War",
+        "start": 78,
+        "end": 35,
+        "group": "Contemporary Global Era",
+        "region": "Global",
+        "description": "Ideological and geopolitical rivalry between the US and Soviet blocs shaping the modern world.",
+        "geoCenter": { "latitude": 52.5, "longitude": 13.4, "zoom": 4 }
       }
     ],
     "progress": {
@@ -497,7 +659,22 @@
       "industrial-revolution-survey": 0,
       "world-wars-era": 0,
       "decolonization": 0,
-      "digital-globalization": 0
+      "digital-globalization": 0,
+      "indus-valley": 0,
+      "shang-dynasty": 0,
+      "maurya-gupta": 0,
+      "mali-empire": 0,
+      "nok-culture": 0,
+      "mesoamerica": 0,
+      "inca-empire": 0,
+      "mongol-empire": 0,
+      "ottoman-empire": 0,
+      "qing-dynasty": 0,
+      "aboriginal-australia": 0,
+      "mughal-india": 0,
+      "transatlantic-slave-trade": 0,
+      "meiji-japan": 0,
+      "cold-war": 0
     }
   }
 }
