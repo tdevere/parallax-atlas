@@ -76,6 +76,13 @@ const zoomBandFromEraSpan = (era: Era): ZoomBand => {
   return 'cosmic'
 }
 
+const packIcon = (id: string): string => {
+  if (id.includes('ai') || id.includes('genesis')) return '🤖'
+  if (id.includes('quantum') || id.includes('physics')) return '🔬'
+  if (id.includes('history')) return '🌍'
+  return '📚'
+}
+
 function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwitchContext }: AppProps) {
   const auth = useAuth()
   const resolvedContext = useMemo(() => resolveViewerContext(config), [config])
@@ -440,6 +447,8 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
 
   const drillContextLabel = selectedEra ? `Drill t0: ${selectedEra.content}` : null
 
+  const showWelcome = momentumStats.started === 0 && !selectedEra && !activeLesson
+
   const queueContextSwitchFlash = (nextMode: ViewerMode, nextPackId?: string) => {
     const nextPackName =
       nextMode === 'provided-context' && nextPackId
@@ -517,6 +526,13 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
 
   const handleExitFocus = () => {
     setSelectedEra(null)
+  }
+
+  const handleQuickStart = () => {
+    const target = recommendedEra ?? activeEras[0]
+    if (!target) return
+    handleMissionComplete(target.id)
+    handleSelectEra(target)
   }
 
   const handleNavigateFocusedEra = (direction: 'previous' | 'next') => {
@@ -657,6 +673,40 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
           <div className="mx-auto grid w-full max-w-7xl gap-4 pb-4 lg:grid-cols-[1.4fr_1fr]">
             <div>
               <h2 className="text-xl font-semibold text-cyan-100">Today's Mission</h2>
+              {showWelcome ? (
+                <>
+                  <p className="mt-1 text-lg font-medium text-slate-100">Welcome! Your journey through knowledge starts here.</p>
+                  <p className="mt-2 text-sm text-slate-300">
+                    Pick one era and take your first step. Every expert started exactly where you are now.
+                  </p>
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-stretch">
+                    <button
+                      aria-label="Quick start with recommended era"
+                      className="flex-1 rounded-lg border-2 border-emerald-500/60 bg-emerald-950/40 px-5 py-4 text-left transition hover:border-emerald-400 hover:bg-emerald-900/50"
+                      onClick={handleQuickStart}
+                      type="button"
+                    >
+                      <span className="text-lg font-semibold text-emerald-200">⚡ Quick Start</span>
+                      <span className="mt-1 block text-sm text-slate-300">
+                        Jump into <strong className="text-white">{missionTargetEra?.content ?? 'the first era'}</strong> and make your first mark
+                      </span>
+                    </button>
+                    {availablePacks.slice(0, 3).map((pack) => (
+                      <button
+                        key={pack.id}
+                        aria-label={`Switch to ${pack.name}`}
+                        className="flex-1 rounded-lg border border-slate-600 bg-slate-900/60 px-5 py-4 text-left transition hover:border-cyan-500 hover:bg-slate-800/60"
+                        onClick={() => handleContextChange(`provided-context:${pack.id}`)}
+                        type="button"
+                      >
+                        <span className="text-base font-semibold text-cyan-200">{packIcon(pack.id)} {pack.name}</span>
+                        <span className="mt-1 block text-sm text-slate-400">Explore this subject</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
               <p className="mt-1 text-sm text-slate-100">{missionHeadline}</p>
               {missionTargetEra?.description && <p className="mt-2 text-sm text-slate-300">Why this matters: {missionTargetEra.description}</p>}
               <p aria-live="polite" className="mt-2 text-sm text-cyan-100">
@@ -724,6 +774,8 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
               )}
               {missionTargetEra && missionTargetEra.id === selectedEra?.id && (
                 <span className="mt-3 inline-flex rounded border border-emerald-700 bg-emerald-950/35 px-3 py-1 text-sm text-emerald-200">Mission in Focus</span>
+              )}
+                </>
               )}
             </div>
           </div>
