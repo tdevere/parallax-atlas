@@ -167,6 +167,8 @@
   - Focus mode now keeps all track labels visible while collapsing non-active tracks to thin label bars, preserving orientation without visual distraction from off-track items.
   - Timeline axis now adapts tick scale (`year`/`month`/`day`) from zoom band plus local data density; micro drill contexts use relative labels (`t0`, `+Ny`, `+Nmo`, `+Nd`) instead of static absolute ticks.
   - Added a subtle drill-context chip near zoom status (`Drill t0: <era>`) to indicate re-zero anchor location without introducing additional navigation rows.
+  - Added a guided first-run welcome experience in the coach panel when all progress is 0%: warm greeting, Quick Start CTA (selects recommended era + completes first mission step), and subject-pack suggestion cards (chosen over defaulting new users to a specific pack via URL redirect, which would break existing E2E tests and add redirect complexity).
+  - Added `AGENT-LEAD-DESIGNER.md` as a combined design + development + business engagement agent profile with prioritized Tier 1–3 backlog (chosen over expanding the existing UI Designer profile, which has a narrower visual-polish scope).
 
 ## Known repo context
 - `src/App.css` appears to be template leftover; active styling is primarily in `src/index.css` + Tailwind classes.
