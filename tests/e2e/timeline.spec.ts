@@ -472,7 +472,6 @@ test('first task completion triggers milestone celebration', async ({ page }) =>
 test('streak badge appears in coach panel on visit', async ({ page }) => {
   // Seed a streak so the badge shows immediately
   await page.addInitScript(() => {
-    const today = new Date().toISOString().slice(0, 10)
     const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
     window.localStorage.setItem('parallax-atlas-streak', JSON.stringify({
       currentStreak: 3,
@@ -501,4 +500,51 @@ test('share button triggers progress image download', async ({ page }) => {
   const download = await downloadPromise
 
   expect(download.suggestedFilename()).toMatch(/^parallax-atlas-progress-\d+\.png$/)
+})
+
+test('civ map auto-enables as teaser on first run with geographic eras', async ({ page }) => {
+  // Clear any stored civ map preference so auto-detection kicks in
+  await page.addInitScript(() => {
+    for (const key of Object.keys(window.localStorage)) {
+      if (key.startsWith('parallax-atlas-civ-map')) window.localStorage.removeItem(key)
+    }
+  })
+
+  // Built-in eras have geoCenter fields, so map should auto-enable
+  await page.goto('/')
+
+  // The civ map toggle should show as active (amber styling = on)
+  const civMapButton = page.getByLabel('Hide civilization map')
+  await expect(civMapButton).toBeVisible()
+
+  // The SVG map should be rendered in the timeline area
+  await expect(page.locator('svg[aria-label="Civilization progress map"]')).toBeVisible()
+})
+
+test('civ map does not auto-enable for packs without geographic data', async ({ page }) => {
+  // Clear stored preference
+  await page.addInitScript(() => {
+    for (const key of Object.keys(window.localStorage)) {
+      if (key.startsWith('parallax-atlas-civ-map')) window.localStorage.removeItem(key)
+    }
+  })
+
+  // Intercept quantum physics pack to strip all geoCenter fields
+  await page.route('**/subject-packs/quantum-physics-survey.json', async (route) => {
+    const response = await route.fetch()
+    const body = await response.json()
+    for (const era of body.context.eras) {
+      delete era.geoCenter
+    }
+    await route.fulfill({ body: JSON.stringify(body), contentType: 'application/json' })
+  })
+
+  await page.goto('/?viewerMode=provided-context&subjectPack=quantum-physics-survey')
+
+  // The civ map toggle should show as inactive
+  const civMapButton = page.getByLabel('Show civilization map')
+  await expect(civMapButton).toBeVisible()
+
+  // The SVG map should NOT be rendered
+  await expect(page.locator('svg[aria-label="Civilization progress map"]')).toHaveCount(0)
 })
