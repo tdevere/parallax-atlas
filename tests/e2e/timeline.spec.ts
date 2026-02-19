@@ -450,3 +450,55 @@ test('ghost jump can return to origin focus and zoom context', async ({ page }) 
   await expect(page.getByLabel('Drill context chip')).toContainText('Drill t0: Internet Era')
   await expect(page.getByLabel('Zoom band status')).toHaveText(originZoomStatus)
 })
+
+test('first task completion triggers milestone celebration', async ({ page }) => {
+  await page.goto('/')
+
+  // Ensure no celebration is visible initially
+  await expect(page.getByText('Journey Begun!')).toHaveCount(0)
+
+  // Complete the first task — should trigger 'first-started' milestone
+  await page.getByRole('button', { name: 'Complete task for Big Bang' }).click()
+
+  // Celebration overlay should appear
+  await expect(page.getByText('Journey Begun!')).toBeVisible()
+  await expect(page.getByText(/first step/)).toBeVisible()
+
+  // Should auto-dismiss or be clickable to dismiss
+  await page.getByText('Journey Begun!').click()
+  await expect(page.getByText('Journey Begun!')).toHaveCount(0)
+})
+
+test('streak badge appears in coach panel on visit', async ({ page }) => {
+  // Seed a streak so the badge shows immediately
+  await page.addInitScript(() => {
+    const today = new Date().toISOString().slice(0, 10)
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+    window.localStorage.setItem('parallax-atlas-streak', JSON.stringify({
+      currentStreak: 3,
+      longestStreak: 5,
+      lastVisitDate: yesterday,
+      startDate: new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10),
+    }))
+  })
+
+  await page.goto('/')
+
+  // recordVisit() will bump streak to 4 since last visit was yesterday
+  // The streak badge should be visible in the stats bar
+  const streakBadge = page.locator('text=/🔥 \\d+d/')
+  await expect(streakBadge).toBeVisible()
+})
+
+test('share button triggers progress image download', async ({ page }) => {
+  await page.goto('/')
+
+  const shareButton = page.getByRole('button', { name: '📷 Share' })
+  await expect(shareButton).toBeVisible()
+
+  const downloadPromise = page.waitForEvent('download')
+  await shareButton.click()
+  const download = await downloadPromise
+
+  expect(download.suggestedFilename()).toMatch(/^parallax-atlas-progress-\d+\.png$/)
+})
