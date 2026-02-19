@@ -1,5 +1,7 @@
 # Copilot Instructions for parallax-atlas
 
+> These instructions guide GitHub Copilot and its coding agent when working on this repository. They cover code style, architecture, testing practices, and development workflows specific to this project.
+
 ## Project snapshot
 - Stack: React 19 + TypeScript + Vite + Tailwind CSS + vis-timeline + Radix Slider.
 - App purpose: visualize major eras (cosmology → human history) on a logarithmic time axis and track per-era learning progress.
@@ -52,6 +54,16 @@
 - CI workflow: `.github/workflows/ci.yml` (lint + build + Playwright E2E)
 - Parallel autonomous planning doc: `AGENT-PARALLEL.md`
 - Parallel launcher script: `scripts/run-parallel-agents.ps1`
+
+### Branching strategy (environment-promotion)
+- **Branch model:** `feature/*` → `dev` → `uat` → `main`
+- **`main`** — production-ready code. Deploys to Azure SWA. Protected: PR required (1 reviewer), status checks, no force push, no deletion.
+- **`uat`** — staging / QA validation. Protected: PR required, status checks. PRs to `main` generate SWA preview environments.
+- **`dev`** — integration branch. All feature branches merge here first. CI runs on push.
+- **`feature/*`** — individual work branches. CI runs on PR to any target.
+- AI-generated PRs from issue-evaluation always target `dev` (never `main` or `uat`).
+- Promotion path: `dev` → PR to `uat` → PR to `main`. Never skip a tier.
+- Production deploy only triggers on push to `main` (after PR merge).
 
 ### Runner/CLI compatibility fallback
 - If `copilot-auto` (or related runner tooling) fails with `unknown option '--no-warnings'`, treat it as a CLI version compatibility issue, not a product-code failure.
@@ -210,6 +222,42 @@
   - Added a guided first-run welcome experience in the coach panel when all progress is 0%: warm greeting, Quick Start CTA (selects recommended era + completes first mission step), and subject-pack suggestion cards (chosen over defaulting new users to a specific pack via URL redirect, which would break existing E2E tests and add redirect complexity).
   - Added `AGENT-LEAD-DESIGNER.md` as a combined design + development + business engagement agent profile with prioritized Tier 1–3 backlog (chosen over expanding the existing UI Designer profile, which has a narrower visual-polish scope).
   - Added comprehensive security and safety policy to copilot-instructions (single source of truth) and referenced it from all 9 agent profiles. Fixed command injection vulnerability in issue-evaluation.yml where `github.event.issue.title` and `github.event.issue.body` were interpolated directly into shell `run:` blocks — moved to `env:` indirection. Converted AI auto-resolve PRs from auto-merge to draft PRs requiring human review, per policy that AI-generated code must not auto-deploy without review. Chosen over keeping auto-merge because quality gates (lint/build/E2E) are necessary but not sufficient to catch security issues or logic errors in AI-generated code.
+
+## File naming and organization
+- Use PascalCase for React component files: `Timeline.tsx`, `ProgressSidebar.tsx`
+- Use kebab-case for utility/config files: `timeline-data.ts`, `pack-loader.ts`
+- Place React components in `src/components/`
+- Place data/types/utilities in `src/data/`, `src/viewer/`, or top-level `src/`
+- Place E2E tests in `tests/e2e/` with `.spec.ts` extension
+- Place subject packs in `public/subject-packs/` with `.json` extension
+
+## Commit and PR guidelines
+- Write clear, descriptive commit messages in present tense
+- Focus commits on single logical changes
+- Reference issue numbers in commits when applicable (e.g., "Fix #123: ...")
+- Keep PRs focused and atomic - one feature/fix per PR
+- Ensure all tests pass before submitting PR
+- Run `npm run lint` and fix any issues before committing
+- Update relevant documentation when changing APIs or behavior
+
+## Security guidelines
+- Never commit API keys, secrets, or credentials to git
+- Use environment variables for sensitive configuration (see `.env.example`)
+- Validate all user inputs and external data (e.g., subject pack JSON)
+- Sanitize data before rendering in UI to prevent XSS
+- Use TypeScript strict mode to catch type-related security issues
+- Review dependencies for known vulnerabilities before adding
+
+## Dependency management
+- Prefer existing dependencies over adding new ones
+- Before adding a new dependency:
+  - Check if existing dependencies can solve the problem
+  - Verify the package is actively maintained
+  - Check for known security vulnerabilities
+  - Consider bundle size impact
+- Use exact versions in `package.json` for critical dependencies
+- Document why new dependencies were added in the AI decision log
+- Run `npm audit` to check for vulnerabilities after adding dependencies
 
 ## Known repo context
 - `src/App.css` appears to be template leftover; active styling is primarily in `src/index.css` + Tailwind classes.

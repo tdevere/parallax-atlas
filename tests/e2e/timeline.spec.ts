@@ -450,3 +450,101 @@ test('ghost jump can return to origin focus and zoom context', async ({ page }) 
   await expect(page.getByLabel('Drill context chip')).toContainText('Drill t0: Internet Era')
   await expect(page.getByLabel('Zoom band status')).toHaveText(originZoomStatus)
 })
+
+test('first task completion triggers milestone celebration', async ({ page }) => {
+  await page.goto('/')
+
+  // Ensure no celebration is visible initially
+  await expect(page.getByText('Journey Begun!')).toHaveCount(0)
+
+  // Complete the first task — should trigger 'first-started' milestone
+  await page.getByRole('button', { name: 'Complete task for Big Bang' }).click()
+
+  // Celebration overlay should appear
+  await expect(page.getByText('Journey Begun!')).toBeVisible()
+  await expect(page.getByText(/first step/)).toBeVisible()
+
+  // Should auto-dismiss or be clickable to dismiss
+  await page.getByText('Journey Begun!').click()
+  await expect(page.getByText('Journey Begun!')).toHaveCount(0)
+})
+
+test('streak badge appears in coach panel on visit', async ({ page }) => {
+  // Seed a streak so the badge shows immediately
+  await page.addInitScript(() => {
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+    window.localStorage.setItem('parallax-atlas-streak', JSON.stringify({
+      currentStreak: 3,
+      longestStreak: 5,
+      lastVisitDate: yesterday,
+      startDate: new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10),
+    }))
+  })
+
+  await page.goto('/')
+
+  // recordVisit() will bump streak to 4 since last visit was yesterday
+  // The streak badge should be visible in the stats bar
+  const streakBadge = page.locator('text=/🔥 \\d+d/')
+  await expect(streakBadge).toBeVisible()
+})
+
+test('share button triggers progress image download', async ({ page }) => {
+  await page.goto('/')
+
+  const shareButton = page.getByRole('button', { name: '📷 Share' })
+  await expect(shareButton).toBeVisible()
+
+  const downloadPromise = page.waitForEvent('download')
+  await shareButton.click()
+  const download = await downloadPromise
+
+  expect(download.suggestedFilename()).toMatch(/^parallax-atlas-progress-\d+\.png$/)
+})
+
+test('civ map auto-enables as teaser on first run with geographic eras', async ({ page }) => {
+  // Clear any stored civ map preference so auto-detection kicks in
+  await page.addInitScript(() => {
+    for (const key of Object.keys(window.localStorage)) {
+      if (key.startsWith('parallax-atlas-civ-map')) window.localStorage.removeItem(key)
+    }
+  })
+
+  // Built-in eras have geoCenter fields, so map should auto-enable
+  await page.goto('/')
+
+  // The civ map toggle should show as active (amber styling = on)
+  const civMapButton = page.getByLabel('Hide civilization map')
+  await expect(civMapButton).toBeVisible()
+
+  // The SVG map should be rendered in the timeline area
+  await expect(page.locator('svg[aria-label="Civilization progress map"]')).toBeVisible()
+})
+
+test('civ map does not auto-enable for packs without geographic data', async ({ page }) => {
+  // Clear stored preference
+  await page.addInitScript(() => {
+    for (const key of Object.keys(window.localStorage)) {
+      if (key.startsWith('parallax-atlas-civ-map')) window.localStorage.removeItem(key)
+    }
+  })
+
+  // Intercept quantum physics pack to strip all geoCenter fields
+  await page.route('**/subject-packs/quantum-physics-survey.json', async (route) => {
+    const response = await route.fetch()
+    const body = await response.json()
+    for (const era of body.context.eras) {
+      delete era.geoCenter
+    }
+    await route.fulfill({ body: JSON.stringify(body), contentType: 'application/json' })
+  })
+
+  await page.goto('/?viewerMode=provided-context&subjectPack=quantum-physics-survey')
+
+  // The civ map toggle should show as inactive
+  const civMapButton = page.getByLabel('Show civilization map')
+  await expect(civMapButton).toBeVisible()
+
+  // The SVG map should NOT be rendered
+  await expect(page.locator('svg[aria-label="Civilization progress map"]')).toHaveCount(0)
+})
