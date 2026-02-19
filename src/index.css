@@ -139,3 +139,36 @@ body {
   font-size: 11px;
   font-weight: 600;
 }
+
+/* ── Civilization map progressive-reveal layer ─────────────────────── */
+.civ-map-backdrop {
+  border-radius: 10px;
+  opacity: 1;
+  transition: opacity 0.4s ease;
+}
+
+/* When the civ map is active, make the vis-timeline slightly transparent
+   so the region grid shows through as a background layer */
+.civ-map-backdrop + div .vis-timeline {
+  background-color: rgba(2, 6, 23, 0.72) !important;
+}
+
+.civ-map-backdrop + div .vis-panel.vis-center {
+  background-color: transparent !important;
+}
+
+/* Mastered-cell glow animation */
+.civ-mastered-glow {
+  animation: civ-glow-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes civ-glow-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* Cell hover hint — just a subtle brightness boost */
+.civ-cell:hover rect:first-child {
+  filter: brightness(1.3) !important;
+  transition: filter 0.15s ease;
+}

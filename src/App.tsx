@@ -124,6 +124,12 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
   const [showSourcePanel, setShowSourcePanel] = useState(false)
   const [showNotebook, setShowNotebook] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
+  const [showCivMap, setShowCivMap] = useState(() => {
+    const stored = window.localStorage.getItem('parallax-atlas-civ-map')
+    if (stored !== null) return stored === 'true'
+    // Default on for world-history packs, off otherwise
+    return currentPackId === 'world-history-survey'
+  })
   const notebookStore = useMemo(() => new NotebookStore(), [])
   const [notebookEntries, setNotebookEntries] = useState<NotebookEntry[]>(() => notebookStore.load())
   const [showLessonLauncher, setShowLessonLauncher] = useState(false)
@@ -180,6 +186,10 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
   useEffect(() => {
     setVisibleNotices(notices)
   }, [notices])
+
+  useEffect(() => {
+    window.localStorage.setItem('parallax-atlas-civ-map', String(showCivMap))
+  }, [showCivMap])
 
   useEffect(() => {
     if (Object.keys(progress).length > 0) {
@@ -571,6 +581,14 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
               </button>
             )}
             <button
+              aria-label={showCivMap ? 'Hide civilization map' : 'Show civilization map'}
+              className={`rounded border px-2 py-0.5 text-xs transition ${showCivMap ? 'border-amber-500 bg-amber-900/50 text-amber-200' : 'border-slate-600 bg-slate-800 text-slate-300 hover:border-amber-500'}`}
+              onClick={() => setShowCivMap((current) => !current)}
+              type="button"
+            >
+              {showCivMap ? '🏛️ Hide Civ Map' : '🏛️ Civ Map'}
+            </button>
+            <button
               aria-label={showNotebook ? 'Hide notebook' : 'Show notebook'}
               className={`rounded border px-2 py-0.5 text-xs transition ${showNotebook ? 'border-amber-500 bg-amber-900/50 text-amber-200' : 'border-slate-600 bg-slate-800 text-slate-300 hover:border-amber-500'}`}
               onClick={() => setShowNotebook((current) => !current)}
@@ -895,6 +913,7 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
               reviewDueByEra={reviewDueByEra}
               onCompleteTask={handleMissionComplete}
               onJumpToContext={handleJumpToContext}
+              showCivMap={showCivMap}
               zoomBand={zoomBand}
               onZoomLevelChange={(nextZoomLevel: number, nextBand: ZoomBand) => {
                 setZoomLevel(nextZoomLevel)
