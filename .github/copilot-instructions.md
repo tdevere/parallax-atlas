@@ -1,5 +1,7 @@
 # Copilot Instructions for parallax-atlas
 
+> These instructions guide GitHub Copilot and its coding agent when working on this repository. They cover code style, architecture, testing practices, and development workflows specific to this project.
+
 ## Project snapshot
 - Stack: React 19 + TypeScript + Vite + Tailwind CSS + vis-timeline + Radix Slider.
 - App purpose: visualize major eras (cosmology → human history) on a logarithmic time axis and track per-era learning progress.
@@ -167,6 +169,42 @@
   - Focus mode now keeps all track labels visible while collapsing non-active tracks to thin label bars, preserving orientation without visual distraction from off-track items.
   - Timeline axis now adapts tick scale (`year`/`month`/`day`) from zoom band plus local data density; micro drill contexts use relative labels (`t0`, `+Ny`, `+Nmo`, `+Nd`) instead of static absolute ticks.
   - Added a subtle drill-context chip near zoom status (`Drill t0: <era>`) to indicate re-zero anchor location without introducing additional navigation rows.
+
+## File naming and organization
+- Use PascalCase for React component files: `Timeline.tsx`, `ProgressSidebar.tsx`
+- Use kebab-case for utility/config files: `timeline-data.ts`, `pack-loader.ts`
+- Place React components in `src/components/`
+- Place data/types/utilities in `src/data/`, `src/viewer/`, or top-level `src/`
+- Place E2E tests in `tests/e2e/` with `.spec.ts` extension
+- Place subject packs in `public/subject-packs/` with `.json` extension
+
+## Commit and PR guidelines
+- Write clear, descriptive commit messages in present tense
+- Focus commits on single logical changes
+- Reference issue numbers in commits when applicable (e.g., "Fix #123: ...")
+- Keep PRs focused and atomic - one feature/fix per PR
+- Ensure all tests pass before submitting PR
+- Run `npm run lint` and fix any issues before committing
+- Update relevant documentation when changing APIs or behavior
+
+## Security guidelines
+- Never commit API keys, secrets, or credentials to git
+- Use environment variables for sensitive configuration (see `.env.example`)
+- Validate all user inputs and external data (e.g., subject pack JSON)
+- Sanitize data before rendering in UI to prevent XSS
+- Use TypeScript strict mode to catch type-related security issues
+- Review dependencies for known vulnerabilities before adding
+
+## Dependency management
+- Prefer existing dependencies over adding new ones
+- Before adding a new dependency:
+  - Check if existing dependencies can solve the problem
+  - Verify the package is actively maintained
+  - Check for known security vulnerabilities
+  - Consider bundle size impact
+- Use exact versions in `package.json` for critical dependencies
+- Document why new dependencies were added in the AI decision log
+- Run `npm audit` to check for vulnerabilities after adding dependencies
 
 ## Known repo context
 - `src/App.css` appears to be template leftover; active styling is primarily in `src/index.css` + Tailwind classes.
