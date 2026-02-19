@@ -234,6 +234,28 @@ Analyze this issue and generate the minimal code changes needed to resolve it. R
   console.log(`📋 Analysis: ${result.analysis}`)
   console.log(`📝 Changes: ${result.changes?.length ?? 0} files`)
 
+  // 4b. Circuit breaker — reject oversized diffs
+  const MAX_FILES = 10
+  const MAX_LINES = 1500
+
+  const cbChanges = result.changes ?? []
+  const totalFiles = cbChanges.length
+  const totalLines = cbChanges.reduce((sum, c) => sum + (c.content?.split('\n').length ?? 0), 0)
+
+  if (totalFiles > MAX_FILES || totalLines > MAX_LINES) {
+    console.log(`⚠️  Circuit breaker: ${totalFiles} files, ~${totalLines} lines exceeds limits (max ${MAX_FILES} files, ${MAX_LINES} lines)`)
+    console.log('   Changes will not be applied. Manual review required.')
+    writeFileSync(join(REPO_ROOT, '.ai-resolution.json'), JSON.stringify({
+      ...result,
+      appliedCount: 0,
+      circuitBreaker: true,
+      circuitBreakerReason: `${totalFiles} files / ~${totalLines} lines exceeds safety limits`,
+      issueNumber: ISSUE_NUMBER,
+      issueType: ISSUE_TYPE,
+    }, null, 2))
+    return
+  }
+
   // 5. Apply changes
   const changes = result.changes ?? []
   let applied = 0

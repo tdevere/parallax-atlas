@@ -13,6 +13,8 @@ Maintain a fallback parallel plan, but prefer a single consolidated autonomous s
 read this directory, understand the project; then follow instructions in AGENT.md; do not interrupt; prioritize reliability/coverage work first: (1) strengthen E2E for injected `window.__TIMELINE_VIEWER_CONFIG__` provided-context boot behavior, (2) strengthen E2E for context-selector journey and active mode/pack status visibility, (3) update planning/docs to keep P0/P1/P2 current; run lint/build/test:e2e; report files changed and validation output
 
 ## Guardrails
+- **All streams must follow the Security and safety policy in `.github/copilot-instructions.md`.**
+- No stream may commit secrets, weaken authentication, or bypass review gates.
 - Each agent must follow `AGENT.md` and `.github/copilot-instructions.md`.
 - One agent per workstream branch/worktree.
 - No shared file editing across streams unless explicitly coordinated.

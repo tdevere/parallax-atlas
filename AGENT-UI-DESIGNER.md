@@ -21,6 +21,10 @@ Deliver the most compelling learner-facing UI possible while preserving reliabil
 6. Record what changed, why it was chosen, and alternatives considered.
 
 ## Guardrails
+- **Follow the Security and safety policy in `.github/copilot-instructions.md` at all times.**
+- Never render user-supplied content via `dangerouslySetInnerHTML` or dynamic script injection.
+- Never introduce tracking, analytics, or telemetry without explicit user consent.
+- Never weaken or bypass authentication flows.
 - Do not change viewer mode contracts (`default-context`, `no-context`, `provided-context`).
 - Do not break `yearsAgoToDate()` / `dateToYearsAgo()` consistency.
 - Keep vis timeline styling changes in `src/index.css` (`.vis-*` rules).

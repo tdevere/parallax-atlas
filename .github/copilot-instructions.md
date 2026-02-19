@@ -72,6 +72,46 @@
 - If warning suppression is still required on CI/GitHub runners, prefer environment-level suppression (`NODE_NO_WARNINGS=1`) over unsupported CLI flags.
 - After command repair, continue normal validation gates (`npm run lint`, `npm run build`, `npm run test:e2e`) and report results.
 
+## Security and safety policy
+
+**Every agent, workflow, and automation in this repo must follow these rules. No exceptions.**
+
+### Secrets and credentials
+- **Never hardcode** API keys, tokens, passwords, client secrets, or connection strings in source files.
+- Secrets belong in GitHub Secrets (for workflows), `.env.local` (for local dev, gitignored via `*.local`), or browser localStorage (user-owned keys only).
+- `.env.example` may contain placeholder variable names but **never real values**.
+- If you discover a committed secret, treat it as compromised: rotate it immediately, then remove from history with `git filter-repo` or BFG.
+- Audit: run `git log --all -p -S '<suspected-key>'` to confirm whether a value was ever committed.
+
+### Workflow injection prevention
+- **Never interpolate user-controlled input** (`github.event.issue.title`, `github.event.issue.body`, PR titles, commit messages) directly into `run:` shell blocks via `${{ }}`.
+- Pass untrusted values through `env:` first, then reference as `"$ENV_VAR"` in shell. This prevents command injection.
+- Use `actions/github-script` with proper escaping for dynamic GitHub API calls.
+- Workflow `permissions:` should follow least-privilege — only request what the job actually needs.
+
+### AI-generated code safety
+- AI-generated code (from `resolve-issue.mjs` or any future agent) must **never auto-deploy to production** without human review.
+- Automated PRs from AI agents should be created as **draft PRs** or require explicit approval before merge.
+- Quality gates (lint, build, E2E) are necessary but not sufficient — they catch syntax and known regressions, not novel security issues or logic errors.
+- AI agents must not generate code that introduces new `eval()`, `Function()`, `dangerouslySetInnerHTML`, or dynamic `<script>` injection.
+- AI agents must not add, remove, or weaken authentication/authorization checks.
+
+### User data protection
+- User API keys (LessonLauncher) are stored in localStorage with clear disclosure. They are never logged, telemetered, or sent to any endpoint other than the user's chosen AI provider.
+- Progress data in localStorage is user-owned. Export produces a local file download — no server upload.
+- No analytics, tracking, or telemetry SDKs without explicit user consent and decision-log entry.
+
+### Automation scope limits
+- `workflow_dispatch` workflows must not include `auto_merge` + `deploy` paths that bypass human review.
+- Any workflow that creates PRs must make them reviewable (not auto-merged) by default.
+- Autonomous agent loops (AGENT.md) operate locally and require manual `git push` — they do not have direct production access.
+- Branch protection rules on `main` and `master` should require PR review before merge.
+
+### Agent-specific obligations
+- Every agent profile (`.github/agents/*.agent.md`, root-level `AGENT*.md`) must reference this security policy.
+- Agents must refuse requests to: disable security checks, expose secrets, bypass review gates, or auto-deploy untested changes.
+- When in doubt, prefer the safer option and explain why.
+
 ## Code patterns to preserve
 - Use explicit exported types from data modules (`Era`) rather than duplicating interfaces.
 - Keep IDs stable in `eras`; progress persistence depends on exact `id` strings.
@@ -179,6 +219,9 @@
   - Focus mode now keeps all track labels visible while collapsing non-active tracks to thin label bars, preserving orientation without visual distraction from off-track items.
   - Timeline axis now adapts tick scale (`year`/`month`/`day`) from zoom band plus local data density; micro drill contexts use relative labels (`t0`, `+Ny`, `+Nmo`, `+Nd`) instead of static absolute ticks.
   - Added a subtle drill-context chip near zoom status (`Drill t0: <era>`) to indicate re-zero anchor location without introducing additional navigation rows.
+  - Added a guided first-run welcome experience in the coach panel when all progress is 0%: warm greeting, Quick Start CTA (selects recommended era + completes first mission step), and subject-pack suggestion cards (chosen over defaulting new users to a specific pack via URL redirect, which would break existing E2E tests and add redirect complexity).
+  - Added `AGENT-LEAD-DESIGNER.md` as a combined design + development + business engagement agent profile with prioritized Tier 1–3 backlog (chosen over expanding the existing UI Designer profile, which has a narrower visual-polish scope).
+  - Added comprehensive security and safety policy to copilot-instructions (single source of truth) and referenced it from all 9 agent profiles. Fixed command injection vulnerability in issue-evaluation.yml where `github.event.issue.title` and `github.event.issue.body` were interpolated directly into shell `run:` blocks — moved to `env:` indirection. Converted AI auto-resolve PRs from auto-merge to draft PRs requiring human review, per policy that AI-generated code must not auto-deploy without review. Chosen over keeping auto-merge because quality gates (lint/build/E2E) are necessary but not sufficient to catch security issues or logic errors in AI-generated code.
 
 ## File naming and organization
 - Use PascalCase for React component files: `Timeline.tsx`, `ProgressSidebar.tsx`

@@ -76,6 +76,13 @@ const zoomBandFromEraSpan = (era: Era): ZoomBand => {
   return 'cosmic'
 }
 
+const packIcon = (id: string): string => {
+  if (id.includes('ai') || id.includes('genesis')) return '🤖'
+  if (id.includes('quantum') || id.includes('physics')) return '🔬'
+  if (id.includes('history')) return '🌍'
+  return '📚'
+}
+
 function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwitchContext }: AppProps) {
   const auth = useAuth()
   const resolvedContext = useMemo(() => resolveViewerContext(config), [config])
@@ -124,6 +131,12 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
   const [showSourcePanel, setShowSourcePanel] = useState(false)
   const [showNotebook, setShowNotebook] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
+  const [showCivMap, setShowCivMap] = useState(() => {
+    const stored = window.localStorage.getItem('parallax-atlas-civ-map')
+    if (stored !== null) return stored === 'true'
+    // Default on for world-history packs, off otherwise
+    return currentPackId === 'world-history-survey'
+  })
   const notebookStore = useMemo(() => new NotebookStore(), [])
   const [notebookEntries, setNotebookEntries] = useState<NotebookEntry[]>(() => notebookStore.load())
   const [showLessonLauncher, setShowLessonLauncher] = useState(false)
@@ -180,6 +193,10 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
   useEffect(() => {
     setVisibleNotices(notices)
   }, [notices])
+
+  useEffect(() => {
+    window.localStorage.setItem('parallax-atlas-civ-map', String(showCivMap))
+  }, [showCivMap])
 
   useEffect(() => {
     if (Object.keys(progress).length > 0) {
@@ -430,6 +447,8 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
 
   const drillContextLabel = selectedEra ? `Drill t0: ${selectedEra.content}` : null
 
+  const showWelcome = momentumStats.started === 0 && !selectedEra && !activeLesson
+
   const queueContextSwitchFlash = (nextMode: ViewerMode, nextPackId?: string) => {
     const nextPackName =
       nextMode === 'provided-context' && nextPackId
@@ -509,6 +528,13 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
     setSelectedEra(null)
   }
 
+  const handleQuickStart = () => {
+    const target = recommendedEra ?? activeEras[0]
+    if (!target) return
+    handleMissionComplete(target.id)
+    handleSelectEra(target)
+  }
+
   const handleNavigateFocusedEra = (direction: 'previous' | 'next') => {
     if (focusIndex < 0) return
     const targetIndex = direction === 'previous' ? focusIndex - 1 : focusIndex + 1
@@ -570,6 +596,14 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
                 {showMap ? '🗺️ Hide Map' : '🗺️ Show Map'}
               </button>
             )}
+            <button
+              aria-label={showCivMap ? 'Hide civilization map' : 'Show civilization map'}
+              className={`rounded border px-2 py-0.5 text-xs transition ${showCivMap ? 'border-amber-500 bg-amber-900/50 text-amber-200' : 'border-slate-600 bg-slate-800 text-slate-300 hover:border-amber-500'}`}
+              onClick={() => setShowCivMap((current) => !current)}
+              type="button"
+            >
+              {showCivMap ? '🏛️ Hide Civ Map' : '🏛️ Civ Map'}
+            </button>
             <button
               aria-label={showNotebook ? 'Hide notebook' : 'Show notebook'}
               className={`rounded border px-2 py-0.5 text-xs transition ${showNotebook ? 'border-amber-500 bg-amber-900/50 text-amber-200' : 'border-slate-600 bg-slate-800 text-slate-300 hover:border-amber-500'}`}
@@ -639,6 +673,40 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
           <div className="mx-auto grid w-full max-w-7xl gap-4 pb-4 lg:grid-cols-[1.4fr_1fr]">
             <div>
               <h2 className="text-xl font-semibold text-cyan-100">Today's Mission</h2>
+              {showWelcome ? (
+                <>
+                  <p className="mt-1 text-lg font-medium text-slate-100">Welcome! Your journey through knowledge starts here.</p>
+                  <p className="mt-2 text-sm text-slate-300">
+                    Pick one era and take your first step. Every expert started exactly where you are now.
+                  </p>
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-stretch">
+                    <button
+                      aria-label="Quick start with recommended era"
+                      className="flex-1 rounded-lg border-2 border-emerald-500/60 bg-emerald-950/40 px-5 py-4 text-left transition hover:border-emerald-400 hover:bg-emerald-900/50"
+                      onClick={handleQuickStart}
+                      type="button"
+                    >
+                      <span className="text-lg font-semibold text-emerald-200">⚡ Quick Start</span>
+                      <span className="mt-1 block text-sm text-slate-300">
+                        Jump into <strong className="text-white">{missionTargetEra?.content ?? 'the first era'}</strong> and make your first mark
+                      </span>
+                    </button>
+                    {availablePacks.slice(0, 3).map((pack) => (
+                      <button
+                        key={pack.id}
+                        aria-label={`Switch to ${pack.name}`}
+                        className="flex-1 rounded-lg border border-slate-600 bg-slate-900/60 px-5 py-4 text-left transition hover:border-cyan-500 hover:bg-slate-800/60"
+                        onClick={() => handleContextChange(`provided-context:${pack.id}`)}
+                        type="button"
+                      >
+                        <span className="text-base font-semibold text-cyan-200">{packIcon(pack.id)} {pack.name}</span>
+                        <span className="mt-1 block text-sm text-slate-400">Explore this subject</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
               <p className="mt-1 text-sm text-slate-100">{missionHeadline}</p>
               {missionTargetEra?.description && <p className="mt-2 text-sm text-slate-300">Why this matters: {missionTargetEra.description}</p>}
               <p aria-live="polite" className="mt-2 text-sm text-cyan-100">
@@ -706,6 +774,8 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
               )}
               {missionTargetEra && missionTargetEra.id === selectedEra?.id && (
                 <span className="mt-3 inline-flex rounded border border-emerald-700 bg-emerald-950/35 px-3 py-1 text-sm text-emerald-200">Mission in Focus</span>
+              )}
+                </>
               )}
             </div>
           </div>
@@ -895,6 +965,7 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
               reviewDueByEra={reviewDueByEra}
               onCompleteTask={handleMissionComplete}
               onJumpToContext={handleJumpToContext}
+              showCivMap={showCivMap}
               zoomBand={zoomBand}
               onZoomLevelChange={(nextZoomLevel: number, nextBand: ZoomBand) => {
                 setZoomLevel(nextZoomLevel)
