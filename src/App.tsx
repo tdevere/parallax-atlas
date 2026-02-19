@@ -3,6 +3,8 @@ import { useAuth } from './auth'
 import { AzureMapPanel } from './components/AzureMapPanel'
 import { FeedbackModal } from './components/FeedbackModal'
 import { LessonLauncher } from './components/LessonLauncher'
+import type { MilestoneType } from './components/MilestoneCelebration'
+import { MilestoneCelebration } from './components/MilestoneCelebration'
 import { NotebookPanel } from './components/NotebookPanel'
 import { ProgressSidebar } from './components/ProgressSidebar'
 import { SourcePanel } from './components/SourcePanel'
@@ -15,6 +17,8 @@ import { saveLessonPlan } from './lesson/lesson-types'
 import type { NotebookEntry } from './notebook/notebook-types'
 import { NotebookStore, generateEntryId } from './notebook/notebook-store'
 import type { Source } from './sources/source-types'
+import { exportProgressImage } from './progress-image-export'
+import { isStreakMilestone, recordVisit, type StreakInfo } from './streak-tracker'
 import { resolveViewerContext } from './viewer/context'
 import { LocalStorageProgressStore, MemoryProgressStore, NoopProgressStore, RemoteProgressStore, type ProgressStore } from './viewer/progress-store'
 import type { GeoCenter, GeoEra, GhostLayerMode, MapSyncMode, RuntimeNotice, SubjectPackEntry, SubgraphSortMode, TimelineViewerConfig, ViewerMode, ZoomBand } from './viewer/types'
@@ -76,6 +80,13 @@ const zoomBandFromEraSpan = (era: Era): ZoomBand => {
   return 'cosmic'
 }
 
+const packIcon = (id: string): string => {
+  if (id.includes('ai') || id.includes('genesis')) return '🤖'
+  if (id.includes('quantum') || id.includes('physics')) return '🔬'
+  if (id.includes('history')) return '🌍'
+  return '📚'
+}
+
 function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwitchContext }: AppProps) {
   const auth = useAuth()
   const resolvedContext = useMemo(() => resolveViewerContext(config), [config])
@@ -124,6 +135,13 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
   const [showSourcePanel, setShowSourcePanel] = useState(false)
   const [showNotebook, setShowNotebook] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
+  const civMapStorageKey = `parallax-atlas-civ-map:${progressPackId}`
+  const [showCivMap, setShowCivMap] = useState(() => {
+    const stored = window.localStorage.getItem(civMapStorageKey)
+    if (stored !== null) return stored === 'true'
+    // Default on when the active eras contain geographic data (teaser for first run)
+    return resolvedContext.eras.some((era) => era.geoCenter != null)
+  })
   const notebookStore = useMemo(() => new NotebookStore(), [])
   const [notebookEntries, setNotebookEntries] = useState<NotebookEntry[]>(() => notebookStore.load())
   const [showLessonLauncher, setShowLessonLauncher] = useState(false)
@@ -177,9 +195,32 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
   })
   const [reviewDueByEra, setReviewDueByEra] = useState<Record<string, boolean>>({})
 
+  // ── Milestone celebration state ──────────────────────────────
+  const [activeMilestone, setActiveMilestone] = useState<MilestoneType | null>(null)
+  const [milestoneEraName, setMilestoneEraName] = useState<string | undefined>()
+  const [milestoneStreakDays, setMilestoneStreakDays] = useState<number | undefined>()
+  const [milestoneKey, setMilestoneKey] = useState(0)
+  const [streakInfo, setStreakInfo] = useState<StreakInfo>(() => recordVisit())
+
+  const triggerMilestone = useCallback((type: MilestoneType, eraName?: string, streakDays?: number) => {
+    setActiveMilestone(type)
+    setMilestoneEraName(eraName)
+    setMilestoneStreakDays(streakDays)
+    setMilestoneKey((k) => k + 1)
+  }, [])
+
+  const dismissMilestone = useCallback(() => {
+    setActiveMilestone(null)
+    setMilestoneEraName(undefined)
+    setMilestoneStreakDays(undefined)
+  }, [])
   useEffect(() => {
     setVisibleNotices(notices)
   }, [notices])
+
+  useEffect(() => {
+    window.localStorage.setItem(civMapStorageKey, String(showCivMap))
+  }, [showCivMap, civMapStorageKey])
 
   useEffect(() => {
     if (Object.keys(progress).length > 0) {
@@ -230,6 +271,10 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
     const currentValue = progress[eraId] ?? 0
     const nextValue = Math.min(100, currentValue + MISSION_COMPLETION_STEP)
 
+    // Snapshot pre-change state for milestone detection
+    const wasAnyStarted = activeEras.some((era) => (progress[era.id] ?? 0) > 0)
+    const wasMastered = currentValue >= 100
+
     setProgress((current) => ({ ...current, [eraId]: nextValue }))
 
     setLastInteractedAt((current) => ({
@@ -237,8 +282,35 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
       [eraId]: new Date().toISOString(),
     }))
 
+    // Record streak visit on first meaningful interaction
+    const updatedStreak = recordVisit()
+    setStreakInfo(updatedStreak)
+
+    // ── Milestone detection ────────────────────────────────────
+    const era = activeEras.find((e) => e.id === eraId)
+
+    // First era started (was 0%, now > 0%, and nothing was started before)
+    if (!wasAnyStarted && currentValue === 0 && nextValue > 0) {
+      triggerMilestone('first-started')
+    }
+    // Era just hit 100%
+    else if (!wasMastered && nextValue >= 100 && era) {
+      // Check if ALL eras are now mastered
+      const allMasteredAfter = activeEras.every((e) =>
+        e.id === eraId ? nextValue >= 100 : (progress[e.id] ?? 0) >= 100,
+      )
+      if (allMasteredAfter) {
+        triggerMilestone('all-mastered')
+      } else {
+        triggerMilestone('era-mastered', era.content)
+      }
+    }
+    // Streak milestone (only if no mastery milestone was already triggered)
+    else if (updatedStreak.isNewDayVisit && isStreakMilestone(updatedStreak.currentStreak)) {
+      triggerMilestone('streak-achieved', undefined, updatedStreak.currentStreak)
+    }
+
     // Log mission completion to notebook
-    const era = resolvedContext.eras.find((e) => e.id === eraId)
     if (era) {
       logNotebookEntry({
         eraId: era.id,
@@ -257,6 +329,10 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
     link.download = 'parallax-atlas-progress.json'
     link.click()
     URL.revokeObjectURL(link.href)
+  }
+
+  const handleExportImage = () => {
+    exportProgressImage(activeEras, progress, activePackName, streakInfo.currentStreak)
   }
 
   const logNotebookEntry = useCallback(
@@ -430,6 +506,8 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
 
   const drillContextLabel = selectedEra ? `Drill t0: ${selectedEra.content}` : null
 
+  const showWelcome = momentumStats.started === 0 && !selectedEra && !activeLesson
+
   const queueContextSwitchFlash = (nextMode: ViewerMode, nextPackId?: string) => {
     const nextPackName =
       nextMode === 'provided-context' && nextPackId
@@ -509,6 +587,13 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
     setSelectedEra(null)
   }
 
+  const handleQuickStart = () => {
+    const target = recommendedEra ?? activeEras[0]
+    if (!target) return
+    handleMissionComplete(target.id)
+    handleSelectEra(target)
+  }
+
   const handleNavigateFocusedEra = (direction: 'previous' | 'next') => {
     if (focusIndex < 0) return
     const targetIndex = direction === 'previous' ? focusIndex - 1 : focusIndex + 1
@@ -570,6 +655,14 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
                 {showMap ? '🗺️ Hide Map' : '🗺️ Show Map'}
               </button>
             )}
+            <button
+              aria-label={showCivMap ? 'Hide civilization map' : 'Show civilization map'}
+              className={`rounded border px-2 py-0.5 text-xs transition ${showCivMap ? 'border-amber-500 bg-amber-900/50 text-amber-200' : 'border-slate-600 bg-slate-800 text-slate-300 hover:border-amber-500'}`}
+              onClick={() => setShowCivMap((current) => !current)}
+              type="button"
+            >
+              {showCivMap ? '🏛️ Hide Civ Map' : '🏛️ Civ Map'}
+            </button>
             <button
               aria-label={showNotebook ? 'Hide notebook' : 'Show notebook'}
               className={`rounded border px-2 py-0.5 text-xs transition ${showNotebook ? 'border-amber-500 bg-amber-900/50 text-amber-200' : 'border-slate-600 bg-slate-800 text-slate-300 hover:border-amber-500'}`}
@@ -633,18 +726,58 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
             <span className="rounded-full border border-emerald-800/80 bg-emerald-950/40 px-3 py-1 text-emerald-100">Strong {momentumStats.strong}</span>
             <span className="rounded-full border border-amber-700/80 bg-amber-950/35 px-3 py-1 text-amber-100">Mastered {momentumStats.mastered}</span>
             <span className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-slate-100">Avg {momentumStats.average}%</span>
+            {streakInfo.currentStreak > 0 && (
+              <span className="rounded-full border border-orange-700/80 bg-orange-950/35 px-3 py-1 text-orange-100">🔥 {streakInfo.currentStreak}d</span>
+            )}
           </div>
         </div>
         {!coachCollapsed && (
           <div className="mx-auto grid w-full max-w-7xl gap-4 pb-4 lg:grid-cols-[1.4fr_1fr]">
             <div>
               <h2 className="text-xl font-semibold text-cyan-100">Today's Mission</h2>
+              {showWelcome ? (
+                <>
+                  <p className="mt-1 text-lg font-medium text-slate-100">Welcome! Your journey through knowledge starts here.</p>
+                  <p className="mt-2 text-sm text-slate-300">
+                    Pick one era and take your first step. Every expert started exactly where you are now.
+                  </p>
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-stretch">
+                    <button
+                      aria-label="Quick start with recommended era"
+                      className="flex-1 rounded-lg border-2 border-emerald-500/60 bg-emerald-950/40 px-5 py-4 text-left transition hover:border-emerald-400 hover:bg-emerald-900/50"
+                      onClick={handleQuickStart}
+                      type="button"
+                    >
+                      <span className="text-lg font-semibold text-emerald-200">⚡ Quick Start</span>
+                      <span className="mt-1 block text-sm text-slate-300">
+                        Jump into <strong className="text-white">{missionTargetEra?.content ?? 'the first era'}</strong> and make your first mark
+                      </span>
+                    </button>
+                    {availablePacks.slice(0, 3).map((pack) => (
+                      <button
+                        key={pack.id}
+                        aria-label={`Switch to ${pack.name}`}
+                        className="flex-1 rounded-lg border border-slate-600 bg-slate-900/60 px-5 py-4 text-left transition hover:border-cyan-500 hover:bg-slate-800/60"
+                        onClick={() => handleContextChange(`provided-context:${pack.id}`)}
+                        type="button"
+                      >
+                        <span className="text-base font-semibold text-cyan-200">{packIcon(pack.id)} {pack.name}</span>
+                        <span className="mt-1 block text-sm text-slate-400">Explore this subject</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
               <p className="mt-1 text-sm text-slate-100">{missionHeadline}</p>
               {missionTargetEra?.description && <p className="mt-2 text-sm text-slate-300">Why this matters: {missionTargetEra.description}</p>}
               <p aria-live="polite" className="mt-2 text-sm text-cyan-100">
                 Next 10-minute action: {missionNextAction}
               </p>
               <p className="mt-1 text-xs text-slate-400">{momentumStats.message}</p>
+              {streakInfo.currentStreak > 0 && (
+                <p className="mt-1 text-xs text-orange-300/90">{streakInfo.message}</p>
+              )}
               {treeAnalytics && (
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                   <span className="rounded-full border border-indigo-800/70 bg-indigo-950/35 px-2 py-0.5 text-indigo-200">
@@ -706,6 +839,8 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
               )}
               {missionTargetEra && missionTargetEra.id === selectedEra?.id && (
                 <span className="mt-3 inline-flex rounded border border-emerald-700 bg-emerald-950/35 px-3 py-1 text-sm text-emerald-200">Mission in Focus</span>
+              )}
+                </>
               )}
             </div>
           </div>
@@ -880,6 +1015,7 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
           onExpandDesktop={() => setSidebarCollapsedDesktop(false)}
           onFocusEra={handleSelectEra}
           onExport={handleExport}
+          onExportImage={handleExportImage}
           reviewDueByEra={reviewDueByEra}
           progress={progress}
           selectedEraId={selectedEra?.id}
@@ -895,6 +1031,7 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
               reviewDueByEra={reviewDueByEra}
               onCompleteTask={handleMissionComplete}
               onJumpToContext={handleJumpToContext}
+              showCivMap={showCivMap}
               zoomBand={zoomBand}
               onZoomLevelChange={(nextZoomLevel: number, nextBand: ZoomBand) => {
                 setZoomLevel(nextZoomLevel)
@@ -945,6 +1082,13 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
         onClose={() => setShowFeedback(false)}
         isAuthenticated={auth.isAuthenticated}
         appContext={`context=${selectedContextControl}${selectedEra ? ` era=${selectedEra.id}` : ''}`}
+      />
+      <MilestoneCelebration
+        key={milestoneKey}
+        milestone={activeMilestone}
+        eraName={milestoneEraName}
+        streakDays={milestoneStreakDays}
+        onDismiss={dismissMilestone}
       />
     </div>
   )

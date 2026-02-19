@@ -1,10 +1,11 @@
 import { DataSet } from 'vis-data'
 import { Timeline as VisTimeline } from 'vis-timeline'
 import 'vis-timeline/styles/vis-timeline-graph2d.css'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Era } from '../data/timeline-data'
 import { formatYearsAgo, groupHue } from '../data/timeline-data'
 import type { GhostLayerMode, ZoomBand } from '../viewer/types'
+import { CivilizationMap } from './CivilizationMap'
 
 interface TimelineProps {
   eras: Era[]
@@ -14,6 +15,7 @@ interface TimelineProps {
   focusEra?: Era | null
   zoomBand?: ZoomBand
   ghostLayerMode?: GhostLayerMode
+  showCivMap?: boolean
   onSelectEra?: (era: Era) => void
   onCompleteTask?: (eraId: string) => void
   onJumpToContext?: (era: Era) => void
@@ -112,6 +114,7 @@ export function Timeline({
   focusEra,
   zoomBand = 'cosmic',
   ghostLayerMode = 'off',
+  showCivMap = false,
   onSelectEra,
   onCompleteTask,
   onJumpToContext,
@@ -119,6 +122,8 @@ export function Timeline({
 }: TimelineProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const timelineRef = useRef<VisTimeline | null>(null)
+  const wrapperRef = useRef<HTMLDivElement | null>(null)
+  const [containerSize, setContainerSize] = useState({ width: 800, height: 400 })
   const eraLookupRef = useRef<Map<string, Era>>(new Map())
   const focusedPrerequisiteIdsRef = useRef<Set<string>>(new Set())
   const focusEraIdRef = useRef<string | null>(null)
@@ -130,6 +135,19 @@ export function Timeline({
   const tickSettingsRef = useRef<TickSettings>({ scale: 'year', step: 1 })
 
   const sourceEras = useMemo(() => (allEras && allEras.length > 0 ? allEras : eras), [allEras, eras])
+
+  // Measure the wrapper for the CivilizationMap background sizing
+  useEffect(() => {
+    if (!wrapperRef.current) return
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (entry) {
+        setContainerSize({ width: entry.contentRect.width, height: entry.contentRect.height })
+      }
+    })
+    observer.observe(wrapperRef.current)
+    return () => observer.disconnect()
+  }, [])
 
   const eraLookup = useMemo(() => new Map(sourceEras.map((era) => [era.id, era])), [sourceEras])
 
@@ -347,7 +365,20 @@ export function Timeline({
 
   return (
     <div aria-label="Timeline canvas" className="flex h-[calc(100vh-64px)] min-w-0 flex-1 flex-col p-4" data-testid="timeline-canvas">
-      <div className="min-h-0 flex-1" ref={containerRef} />
+      <div className="relative min-h-0 flex-1" ref={wrapperRef}>
+        {/* Progressive-reveal civilization map background */}
+        {showCivMap && (
+          <div className="civ-map-backdrop pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[10px]" aria-hidden="true">
+            <CivilizationMap
+              eras={sourceEras}
+              height={containerSize.height}
+              progress={progress}
+              width={containerSize.width}
+            />
+          </div>
+        )}
+        <div className={`relative ${showCivMap ? 'z-10' : ''} h-full`} ref={containerRef} />
+      </div>
       <div
         aria-label="Nested timeline row"
         className={`overflow-hidden transition-all duration-300 ease-out ${nestedChildren.length > 0 && focusEra ? NESTED_ROW_MAX_HEIGHT_CLASS : 'max-h-0'} ${nestedChildren.length > 0 && focusEra ? 'mt-3 opacity-100' : 'opacity-0'}`}

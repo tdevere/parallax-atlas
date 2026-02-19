@@ -11,6 +11,7 @@ interface ProgressSidebarProps {
   onCompleteTask: (id: string) => void
   onFocusEra?: (era: Era) => void
   onExport: () => void
+  onExportImage?: () => void
   isOpen: boolean
   isCollapsedDesktop: boolean
   onCollapseDesktop: () => void
@@ -26,6 +27,7 @@ export function ProgressSidebar({
   onCompleteTask,
   onFocusEra,
   onExport,
+  onExportImage,
   isOpen,
   isCollapsedDesktop,
   onCollapseDesktop,
@@ -120,9 +122,16 @@ export function ProgressSidebar({
         </button>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Knowledge Progress</h2>
-          <button className="rounded border border-slate-600 px-2 py-1 text-xs hover:bg-slate-800" onClick={onExport} type="button">
-            Export JSON
-          </button>
+          <div className="flex gap-1.5">
+            {onExportImage && (
+              <button className="rounded border border-cyan-600 px-2 py-1 text-xs text-cyan-200 hover:bg-cyan-900/30" onClick={onExportImage} type="button">
+                📷 Share
+              </button>
+            )}
+            <button className="rounded border border-slate-600 px-2 py-1 text-xs hover:bg-slate-800" onClick={onExport} type="button">
+              Export JSON
+            </button>
+          </div>
         </div>
         <div className="space-y-5">
         {grouped.map(([group, groupEras]) => (
