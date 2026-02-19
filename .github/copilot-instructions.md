@@ -55,6 +55,16 @@
 - Parallel autonomous planning doc: `AGENT-PARALLEL.md`
 - Parallel launcher script: `scripts/run-parallel-agents.ps1`
 
+### Branching strategy (environment-promotion)
+- **Branch model:** `feature/*` → `dev` → `uat` → `main`
+- **`main`** — production-ready code. Deploys to Azure SWA. Protected: PR required (1 reviewer), status checks, no force push, no deletion.
+- **`uat`** — staging / QA validation. Protected: PR required, status checks. PRs to `main` generate SWA preview environments.
+- **`dev`** — integration branch. All feature branches merge here first. CI runs on push.
+- **`feature/*`** — individual work branches. CI runs on PR to any target.
+- AI-generated PRs from issue-evaluation always target `dev` (never `main` or `uat`).
+- Promotion path: `dev` → PR to `uat` → PR to `main`. Never skip a tier.
+- Production deploy only triggers on push to `main` (after PR merge).
+
 ### Runner/CLI compatibility fallback
 - If `copilot-auto` (or related runner tooling) fails with `unknown option '--no-warnings'`, treat it as a CLI version compatibility issue, not a product-code failure.
 - First capture environment details in logs (CLI version + Node version + OS).

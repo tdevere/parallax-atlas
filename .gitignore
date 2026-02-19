@@ -27,3 +27,4 @@ test-results
 *.njsproj
 *.sln
 *.sw?
+scripts/ne_110m_countries.geojson
