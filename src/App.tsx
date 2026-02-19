@@ -135,11 +135,12 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
   const [showSourcePanel, setShowSourcePanel] = useState(false)
   const [showNotebook, setShowNotebook] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
+  const civMapStorageKey = `parallax-atlas-civ-map:${progressPackId}`
   const [showCivMap, setShowCivMap] = useState(() => {
-    const stored = window.localStorage.getItem('parallax-atlas-civ-map')
+    const stored = window.localStorage.getItem(civMapStorageKey)
     if (stored !== null) return stored === 'true'
-    // Default on for world-history packs, off otherwise
-    return currentPackId === 'world-history-survey'
+    // Default on when the active eras contain geographic data (teaser for first run)
+    return resolvedContext.eras.some((era) => era.geoCenter != null)
   })
   const notebookStore = useMemo(() => new NotebookStore(), [])
   const [notebookEntries, setNotebookEntries] = useState<NotebookEntry[]>(() => notebookStore.load())
@@ -218,8 +219,8 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
   }, [notices])
 
   useEffect(() => {
-    window.localStorage.setItem('parallax-atlas-civ-map', String(showCivMap))
-  }, [showCivMap])
+    window.localStorage.setItem(civMapStorageKey, String(showCivMap))
+  }, [showCivMap, civMapStorageKey])
 
   useEffect(() => {
     if (Object.keys(progress).length > 0) {
