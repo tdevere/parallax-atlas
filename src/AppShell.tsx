@@ -15,13 +15,6 @@ import { useAuth } from './auth'
 import { LandingPage } from './components/LandingPage'
 import type { RuntimeNotice, SubjectPackEntry, TimelineViewerConfig, ViewerMode } from './viewer/types'
 
-declare global {
-  interface Window {
-    /** Test-only: force the landing page to display on localhost */
-    __FORCE_LANDING_PAGE__?: boolean
-  }
-}
-
 const SESSION_ENTERED_KEY = 'parallax-atlas-entered'
 
 interface AppShellProps {
@@ -37,8 +30,6 @@ interface AppShellProps {
  * Evaluated once at module load.
  */
 function computeSkipLandingStatic(): boolean {
-  // Test override: force landing page to display
-  if (window.__FORCE_LANDING_PAGE__) return false
   // Embedded / provided-context mode
   if (window.__TIMELINE_VIEWER_CONFIG__) return true
   // Subject pack query (direct link to a pack)
@@ -58,10 +49,11 @@ export function AppShell({ config, availablePacks, notices, bingMapsApiKey, onSw
   const showApp = useMemo(() => {
     if (SKIP_LANDING_STATIC) return true
     if (enteredAsGuest) return true
-    // Don't auto-skip when force-landing is set (for testing)
-    if (!window.__FORCE_LANDING_PAGE__ && !auth.loading && auth.isAuthenticated) return true
+    // Skip landing only for real SWA-authenticated users (provider !== 'dev').
+    // Local dev mock auth should still show the landing page.
+    if (!auth.loading && auth.isAuthenticated && auth.user?.provider !== 'dev') return true
     return false
-  }, [auth.loading, auth.isAuthenticated, enteredAsGuest])
+  }, [auth.loading, auth.isAuthenticated, auth.user?.provider, enteredAsGuest])
 
   const handleGuestEntry = useCallback(() => {
     sessionStorage.setItem(SESSION_ENTERED_KEY, '1')

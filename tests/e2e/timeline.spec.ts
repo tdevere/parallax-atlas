@@ -1,5 +1,13 @@
 import { expect, test } from '@playwright/test'
 
+// Auto-bypass the landing page for all tests.
+// Landing-page-specific tests override this by clearing the session flag.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.sessionStorage.setItem('parallax-atlas-entered', '1')
+  })
+})
+
 test('selecting a timeline era enters focus mode and can return to full timeline', async ({ page }) => {
   await page.goto('/')
 
@@ -667,10 +675,9 @@ test('share invite section is hidden for new users', async ({ page }) => {
 // ── Landing Page ────────────────────────────────────────────────────
 
 test('landing page renders with parallax hero and CTAs', async ({ page }) => {
-  // Force the landing page to display on localhost
+  // Clear the session bypass flag so the landing page shows
   await page.addInitScript(() => {
-    window.__FORCE_LANDING_PAGE__ = true
-    window.sessionStorage.clear()
+    window.sessionStorage.removeItem('parallax-atlas-entered')
   })
 
   await page.goto('/')
@@ -693,8 +700,7 @@ test('landing page renders with parallax hero and CTAs', async ({ page }) => {
 
 test('landing page guest entry transitions to main app', async ({ page }) => {
   await page.addInitScript(() => {
-    window.__FORCE_LANDING_PAGE__ = true
-    window.sessionStorage.clear()
+    window.sessionStorage.removeItem('parallax-atlas-entered')
   })
 
   await page.goto('/')
@@ -714,8 +720,7 @@ test('landing page guest entry transitions to main app', async ({ page }) => {
 
 test('landing page sign-in button triggers auth redirect', async ({ page }) => {
   await page.addInitScript(() => {
-    window.__FORCE_LANDING_PAGE__ = true
-    window.sessionStorage.clear()
+    window.sessionStorage.removeItem('parallax-atlas-entered')
   })
 
   // Intercept the auth redirect to verify it was triggered
