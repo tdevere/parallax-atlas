@@ -106,16 +106,16 @@ You are bound by the **Security and safety policy** in `.github/copilot-instruct
 2. ~~One-click quick-start action~~ — selects recommended era + completes first step.
 3. ~~Pack suggestion cards~~ — subject packs as card buttons in welcome state.
 
-### Tier 2 — Engagement polish
-4. Milestone celebration animations (first era started, first era mastered, all eras mastered).
-5. Streak counter + return-visit messaging in coach panel.
-6. Progress snapshot export as shareable image (not just JSON).
-7. Civ map as default-on teaser during first run for packs with geographic data.
+### Tier 2 — Engagement polish ✅ SHIPPED
+4. ~~Milestone celebration animations~~ (first era started, first era mastered, all eras mastered).
+5. ~~Streak counter + return-visit messaging~~ in coach panel.
+6. ~~Progress snapshot export as shareable image~~ (not just JSON).
+7. ~~Civ map as default-on teaser~~ during first run for packs with geographic data.
 
-### Tier 3 — Depth and retention
-8. Progressive disclosure of advanced controls (ghost layers, prerequisite sort, drill-down).
-9. Study-partner invite flow at mastery thresholds.
-10. Daily micro-goal suggestions based on spaced-repetition schedule.
+### Tier 3 — Depth and retention ✅ SHIPPED
+8. ~~Progressive disclosure of advanced controls~~ (ghost layers, prerequisite sort, drill-down).
+9. ~~Study-partner invite flow~~ at mastery thresholds.
+10. ~~Daily micro-goal suggestions~~ based on spaced-repetition schedule.
 
 ## Workflow
 
