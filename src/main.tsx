@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import App from './App.tsx'
+import { AppShell } from './AppShell'
 import { loadRuntimeViewerConfig, updateViewerQuery } from './viewer/pack-loader'
 import type { TimelineViewerConfig } from './viewer/types'
 
@@ -31,7 +31,7 @@ const bootstrap = async () => {
 
   root.render(
     <StrictMode>
-      <App
+      <AppShell
         availablePacks={packs}
         bingMapsApiKey={bingMapsApiKey}
         config={config}

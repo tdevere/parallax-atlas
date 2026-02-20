@@ -663,3 +663,77 @@ test('share invite section is hidden for new users', async ({ page }) => {
   // Share section should NOT be present for new users
   await expect(page.locator('[aria-label="Share and invite"]')).toHaveCount(0)
 })
+
+// ── Landing Page ────────────────────────────────────────────────────
+
+test('landing page renders with parallax hero and CTAs', async ({ page }) => {
+  // Force the landing page to display on localhost
+  await page.addInitScript(() => {
+    window.__FORCE_LANDING_PAGE__ = true
+    window.sessionStorage.clear()
+  })
+
+  await page.goto('/')
+
+  // Hero content
+  await expect(page.getByText('Parallax Atlas')).toBeVisible()
+  await expect(page.getByText('Timeline of Knowledge')).toBeVisible()
+  await expect(page.getByText(/Journey from the Big Bang/)).toBeVisible()
+
+  // CTA buttons
+  await expect(page.getByTestId('landing-sign-in')).toBeVisible()
+  await expect(page.getByTestId('landing-guest-entry')).toBeVisible()
+
+  // Floating era cards are decorative (aria-hidden), verify the container exists
+  await expect(page.locator('.landing-eras')).toBeAttached()
+
+  // Journey line SVG is present
+  await expect(page.locator('.landing-journey-line')).toBeAttached()
+})
+
+test('landing page guest entry transitions to main app', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__FORCE_LANDING_PAGE__ = true
+    window.sessionStorage.clear()
+  })
+
+  await page.goto('/')
+
+  // Landing page should be visible
+  await expect(page.getByTestId('landing-guest-entry')).toBeVisible()
+
+  // Click guest entry
+  await page.getByTestId('landing-guest-entry').click()
+
+  // Should transition to the main app — look for the Parallax Atlas heading in the app header
+  await expect(page.getByRole('heading', { name: /parallax atlas/i })).toBeVisible()
+
+  // Landing page elements should be gone
+  await expect(page.getByTestId('landing-guest-entry')).toHaveCount(0)
+})
+
+test('landing page sign-in button triggers auth redirect', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__FORCE_LANDING_PAGE__ = true
+    window.sessionStorage.clear()
+  })
+
+  // Intercept the auth redirect to verify it was triggered
+  let authRedirectUrl = ''
+  await page.route('**/.auth/login/aad*', (route) => {
+    authRedirectUrl = route.request().url()
+    // Don't actually navigate — just abort to capture the intent
+    void route.abort()
+  })
+
+  await page.goto('/')
+
+  await expect(page.getByTestId('landing-sign-in')).toBeVisible()
+  await page.getByTestId('landing-sign-in').click()
+
+  // Give the redirect a moment to initiate
+  await page.waitForTimeout(500)
+
+  // Verify the auth redirect was attempted
+  expect(authRedirectUrl).toContain('.auth/login/aad')
+})
