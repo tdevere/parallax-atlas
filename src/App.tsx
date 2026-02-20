@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from './auth'
 import { AzureMapPanel } from './components/AzureMapPanel'
 import { FeedbackModal } from './components/FeedbackModal'
+import { JourneyCreator } from './components/JourneyCreator'
 import { LessonLauncher } from './components/LessonLauncher'
 import type { MilestoneType } from './components/MilestoneCelebration'
 import { MilestoneCelebration } from './components/MilestoneCelebration'
@@ -226,6 +227,7 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
   const notebookStore = useMemo(() => new NotebookStore(), [])
   const [notebookEntries, setNotebookEntries] = useState<NotebookEntry[]>(() => notebookStore.load())
   const [showLessonLauncher, setShowLessonLauncher] = useState(false)
+  const [showJourneyCreator, setShowJourneyCreator] = useState(false)
   const [activeLesson, setActiveLesson] = useState<LessonPlan | null>(null)
   const [generatedEras, setGeneratedEras] = useState<Era[] | null>(null)
 
@@ -485,6 +487,27 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
     return () => window.clearTimeout(timeoutId)
   }, [progressStore, resolvedContext.eras, resolvedContext.initialProgress])
 
+  /** Soft context switch — load a server-generated journey pack */
+  const handleJourneyReady = useCallback((pack: import('./viewer/types').SubjectPackPayload, meta: { journeyId: string; generatorModel: string }) => {
+    const packEras = pack.context.eras ?? []
+    const packProgress = packEras.reduce<Record<string, number>>((acc, era) => {
+      acc[era.id] = pack.context.progress?.[era.id] ?? 0
+      return acc
+    }, {})
+
+    setGeneratedEras(packEras)
+    setProgress(packProgress)
+    setSelectedEra(null)
+    setActiveLesson(null)
+    setShowJourneyCreator(false)
+    setShowSourcePanel(false)
+    setReturnTarget(null)
+
+    setContextSwitchFlash(`Generated journey: ${pack.name} (${meta.generatorModel})`)
+    const timeoutId = window.setTimeout(() => setContextSwitchFlash(null), 3000)
+    return () => window.clearTimeout(timeoutId)
+  }, [])
+
   /** Build learner profile from current notebook + progress */
   const learnerProfile = useMemo(
     () => buildLearnerProfile(notebookEntries, progress),
@@ -722,6 +745,15 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
                 Exit Lesson
               </button>
             )}
+            <button
+              aria-label="Create a new AI-generated learning journey"
+              className="rounded border border-indigo-600 bg-indigo-900/30 px-2 py-0.5 text-xs font-medium text-indigo-200 hover:bg-indigo-800/40"
+              onClick={() => setShowJourneyCreator(true)}
+              type="button"
+              data-testid="create-journey-btn"
+            >
+              ✨ Create Journey
+            </button>
             <button
               aria-label="Start learning a new subject"
               className="rounded border border-emerald-600 bg-emerald-900/30 px-2 py-0.5 text-xs font-medium text-emerald-200 hover:bg-emerald-800/40"
@@ -1261,6 +1293,12 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
           learnerProfile={learnerProfile}
           onClose={() => setShowLessonLauncher(false)}
           onLessonReady={handleLessonReady}
+        />
+      )}
+      {showJourneyCreator && (
+        <JourneyCreator
+          onClose={() => setShowJourneyCreator(false)}
+          onJourneyReady={handleJourneyReady}
         />
       )}
       <FeedbackModal

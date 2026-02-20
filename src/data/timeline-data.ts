@@ -25,6 +25,24 @@ export interface EraConnection {
   strength?: number
 }
 
+/** Drill-down subtopic within an era */
+export interface SubTopic {
+  id: string
+  label: string
+  description?: string
+  /** Years ago — same convention as Era.start/end */
+  start?: number
+  end?: number
+}
+
+/** Named geographic point of interest within an era */
+export interface GeoMarker {
+  label: string
+  latitude: number
+  longitude: number
+  description?: string
+}
+
 export type WorldRegion = 'Asia' | 'Europe' | 'Africa' | 'Americas' | 'Middle East' | 'Australasia' | 'Global'
 
 export const WORLD_REGIONS: WorldRegion[] = ['Australasia', 'Asia', 'Middle East', 'Europe', 'Africa', 'Americas']
@@ -68,6 +86,8 @@ export interface Era {
   estimatedMinutes?: number
   skillTags?: string[]
   region?: WorldRegion
+  subtopics?: SubTopic[]
+  keyLocations?: GeoMarker[]
 }
 
 export const eras: Era[] = [
