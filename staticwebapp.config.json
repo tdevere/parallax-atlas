@@ -20,6 +20,11 @@
       "allowedRoles": ["anonymous", "authenticated"]
     },
     {
+      "route": "/api/journey",
+      "methods": ["POST"],
+      "allowedRoles": ["anonymous", "authenticated"]
+    },
+    {
       "route": "/api/*",
       "allowedRoles": ["authenticated"]
     }

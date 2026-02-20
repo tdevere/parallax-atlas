@@ -27,6 +27,23 @@ import type {
 } from '../shared/journey-types.js'
 import { validateJourneyPack } from '../shared/journey-validation.js'
 
+// ── Trial access gate ──────────────────────────────────────────────
+
+/**
+ * Check if a user is allowed to use the journey generation feature.
+ * During trial, only emails listed in JOURNEY_TRIAL_EMAILS app setting are allowed.
+ * If JOURNEY_TRIAL_EMAILS is empty or not set, the feature is open to all.
+ */
+function isTrialAllowed(email: string | undefined): boolean {
+  const allowList = process.env.JOURNEY_TRIAL_EMAILS
+  if (!allowList || allowList.trim().length === 0) return true // No gate — open to all
+
+  if (!email) return false // Gate active but no email — denied
+
+  const allowed = allowList.split(',').map((e) => e.trim().toLowerCase())
+  return allowed.includes(email.toLowerCase())
+}
+
 // ── Helpers ────────────────────────────────────────────────────────
 
 function generateId(): string {
@@ -53,6 +70,13 @@ async function generateJourney(
   request: HttpRequest,
   context: InvocationContext,
 ): Promise<HttpResponseInit> {
+  // 0. Trial access gate
+  const principal = parseClientPrincipal(request.headers.get('x-ms-client-principal'))
+  const userEmail = principal?.userDetails
+  if (!isTrialAllowed(userEmail)) {
+    return errorResponse(403, 'Journey generation is currently in private trial. Contact the team for access.')
+  }
+
   // 1. Resolve LLM config
   const llmConfig = resolveLLMConfig()
   if (!llmConfig) {
@@ -128,7 +152,6 @@ async function generateJourney(
   }
 
   // 6. If authenticated, persist to Cosmos
-  const principal = parseClientPrincipal(request.headers.get('x-ms-client-principal'))
   if (principal) {
     const doc: JourneyDoc = {
       id: `journey:${principal.userId}:${journeyId}`,
