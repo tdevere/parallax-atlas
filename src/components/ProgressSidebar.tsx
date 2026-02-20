@@ -1,5 +1,6 @@
 import type { Era } from '../data/timeline-data'
 import { badgeClassForProgress, milestoneLabelForProgress } from '../data/timeline-data'
+import { FORMAT_ICON } from '../sources/source-types'
 import type { SubgraphSortMode } from '../viewer/types'
 
 interface ProgressSidebarProps {
@@ -10,6 +11,7 @@ interface ProgressSidebarProps {
   sortMode?: SubgraphSortMode
   onCompleteTask: (id: string) => void
   onFocusEra?: (era: Era) => void
+  onViewSources?: (era: Era) => void
   onExport: () => void
   onExportImage?: () => void
   isOpen: boolean
@@ -26,6 +28,7 @@ export function ProgressSidebar({
   sortMode = 'chronological',
   onCompleteTask,
   onFocusEra,
+  onViewSources,
   onExport,
   onExportImage,
   isOpen,
@@ -145,6 +148,10 @@ export function ProgressSidebar({
                 const milestoneLabel = milestoneLabelForProgress(value)
                 const reviewDue = reviewDueByEra[era.id] ?? false
                 const completedCheckpoints = Math.round(value / 25)
+                const sources = era.sources ?? []
+                const videoSources = sources.filter((s) => s.format === 'video')
+                const otherSources = sources.filter((s) => s.format !== 'video')
+                const topVideo = videoSources[0]
                 return (
                   <li
                     aria-current={isSelected ? 'true' : undefined}
@@ -170,6 +177,60 @@ export function ProgressSidebar({
                       </div>
                     </div>
                     {era.description && <p className="mb-2 text-xs text-slate-500">{era.description}</p>}
+
+                    {/* ── Source quick-links (content-first) ──────────── */}
+                    {sources.length > 0 && (
+                      <div className="mb-2 space-y-1.5">
+                        {topVideo && (
+                          <a
+                            className="flex items-center gap-2 rounded border border-red-800/50 bg-red-950/20 px-2.5 py-1.5 text-xs text-red-200 transition hover:border-red-600 hover:bg-red-900/30"
+                            href={topVideo.url}
+                            rel="noopener noreferrer"
+                            target="_blank"
+                          >
+                            <span className="text-base">▶️</span>
+                            <span className="min-w-0 flex-1 truncate font-medium">{topVideo.title}</span>
+                            {topVideo.estimatedMinutes && <span className="shrink-0 text-[10px] text-slate-400">{topVideo.estimatedMinutes}m</span>}
+                          </a>
+                        )}
+                        <div className="flex flex-wrap gap-1">
+                          {videoSources.slice(1).map((src) => (
+                            <a
+                              className="inline-flex items-center gap-1 rounded border border-slate-700 bg-slate-800/50 px-2 py-0.5 text-[10px] text-slate-300 transition hover:border-red-600 hover:text-red-200"
+                              href={src.url}
+                              key={src.id}
+                              rel="noopener noreferrer"
+                              target="_blank"
+                              title={src.title}
+                            >
+                              ▶️ {src.author ?? src.domain ?? 'Video'}
+                            </a>
+                          ))}
+                          {otherSources.slice(0, 3).map((src) => (
+                            <a
+                              className="inline-flex items-center gap-1 rounded border border-slate-700 bg-slate-800/50 px-2 py-0.5 text-[10px] text-slate-300 transition hover:border-blue-500 hover:text-blue-200"
+                              href={src.url}
+                              key={src.id}
+                              rel="noopener noreferrer"
+                              target="_blank"
+                              title={src.title}
+                            >
+                              {FORMAT_ICON[src.format]} {src.domain ?? src.author ?? 'Source'}
+                            </a>
+                          ))}
+                          {onViewSources && sources.length > 3 && (
+                            <button
+                              className="inline-flex items-center gap-1 rounded border border-amber-700/60 bg-amber-950/20 px-2 py-0.5 text-[10px] text-amber-200 transition hover:bg-amber-900/30"
+                              onClick={() => onViewSources(era)}
+                              type="button"
+                            >
+                              📚 All {sources.length} sources
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     {reviewDue && <p className="mb-2 text-xs text-amber-300">Review due: no interaction in 3+ days.</p>}
                     <p aria-live="polite" className="mb-2 text-xs text-slate-400">
                       {milestoneLabel}

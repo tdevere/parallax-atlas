@@ -704,6 +704,13 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
     setHasSeenFocusOnboarding(true)
     setZoomBand(zoomBandFromEraSpan(era))
 
+    // Auto-show source panel if era has curated sources
+    if (era.sources && era.sources.length > 0) {
+      setShowSourcePanel(true)
+    } else {
+      setShowSourcePanel(false)
+    }
+
     // Auto-log era exploration to notebook
     logNotebookEntry({
       eraId: era.id,
@@ -1305,6 +1312,7 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
           onCollapseDesktop={() => setSidebarCollapsedDesktop(true)}
           onExpandDesktop={() => setSidebarCollapsedDesktop(false)}
           onFocusEra={handleSelectEra}
+          onViewSources={(era) => { handleSelectEra(era); setShowSourcePanel(true) }}
           onExport={handleExport}
           onExportImage={handleExportImage}
           reviewDueByEra={reviewDueByEra}

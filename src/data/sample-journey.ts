@@ -8,9 +8,322 @@
  */
 
 import type { Era } from './timeline-data'
+import type { Source } from '../sources/source-types'
 
 export const SAMPLE_JOURNEY_NAME = 'History of Space Exploration'
 export const SAMPLE_JOURNEY_PACK_ID = '_sample-space-exploration'
+
+/* ── Curated sources per era ─────────────────────────────────────── */
+
+const earlyRocketrySources: Source[] = [
+  {
+    id: 'src-goddard-nasa',
+    title: 'Robert Goddard — America\'s Space Pioneer',
+    url: 'https://www.nasa.gov/missions/research/f_goddard.html',
+    format: 'overview',
+    author: 'NASA',
+    domain: 'nasa.gov',
+    snippet: 'How Goddard\'s 1926 liquid-fuel launch changed everything we thought was possible.',
+    difficulty: 'intro',
+    estimatedMinutes: 8,
+  },
+  {
+    id: 'src-goddard-yt',
+    title: 'The Father of Modern Rocketry — Robert Goddard',
+    url: 'https://www.youtube.com/watch?v=vYA1cMIENBE',
+    format: 'video',
+    author: 'Smithsonian Channel',
+    domain: 'youtube.com',
+    snippet: 'Documentary on Goddard\'s experiments and the leap from theory to flight.',
+    difficulty: 'intro',
+    estimatedMinutes: 10,
+  },
+  {
+    id: 'src-goddard-wiki',
+    title: 'Robert H. Goddard — Wikipedia',
+    url: 'https://en.wikipedia.org/wiki/Robert_H._Goddard',
+    format: 'overview',
+    author: 'Wikipedia',
+    domain: 'wikipedia.org',
+    snippet: 'Comprehensive biography, 214 patents, and Goddard\'s lasting influence on rocketry.',
+    difficulty: 'intro',
+    estimatedMinutes: 15,
+  },
+]
+
+const v2Sources: Source[] = [
+  {
+    id: 'src-v2-yt',
+    title: 'V-2: The Nazi Rocket That Launched the Space Age',
+    url: 'https://www.youtube.com/watch?v=dscRiv3VfJc',
+    format: 'video',
+    author: 'Real Engineering',
+    domain: 'youtube.com',
+    snippet: 'How a weapon of war became the blueprint for space exploration.',
+    difficulty: 'intro',
+    estimatedMinutes: 15,
+  },
+  {
+    id: 'src-paperclip-wiki',
+    title: 'Operation Paperclip — Wikipedia',
+    url: 'https://en.wikipedia.org/wiki/Operation_Paperclip',
+    format: 'overview',
+    author: 'Wikipedia',
+    domain: 'wikipedia.org',
+    snippet: 'The secret US program that recruited over 1,600 German scientists after WWII.',
+    difficulty: 'intro',
+    estimatedMinutes: 12,
+  },
+  {
+    id: 'src-vonbraun-yt',
+    title: 'Wernher von Braun — From Nazi Rockets to the Moon',
+    url: 'https://www.youtube.com/watch?v=J0WbrBs0JIE',
+    format: 'video',
+    author: 'Biography Channel',
+    domain: 'youtube.com',
+    snippet: 'The controversial journey of the man who built both the V-2 and Saturn V.',
+    difficulty: 'intro',
+    estimatedMinutes: 12,
+  },
+]
+
+const sputnikSources: Source[] = [
+  {
+    id: 'src-sputnik-nasa',
+    title: 'Sputnik and The Dawn of the Space Age',
+    url: 'https://history.nasa.gov/sputnik.html',
+    format: 'overview',
+    author: 'NASA History Division',
+    domain: 'nasa.gov',
+    snippet: 'NASA\'s official account of the Sputnik crisis and its consequences.',
+    difficulty: 'intro',
+    estimatedMinutes: 10,
+  },
+  {
+    id: 'src-sputnik-yt',
+    title: 'How Sputnik Changed The World',
+    url: 'https://www.youtube.com/watch?v=TtcaSGm5H3k',
+    format: 'video',
+    author: 'Vox',
+    domain: 'youtube.com',
+    snippet: 'A beeping satellite triggered a technological revolution. Here\'s how.',
+    difficulty: 'intro',
+    estimatedMinutes: 8,
+  },
+  {
+    id: 'src-spacerace-khan',
+    title: 'The Space Race — Khan Academy',
+    url: 'https://www.khanacademy.org/humanities/us-history/postwarera/1950s-america/a/the-start-of-the-space-race',
+    format: 'lecture',
+    author: 'Khan Academy',
+    domain: 'khanacademy.org',
+    snippet: 'Interactive lesson on the geopolitical context that fueled the race to space.',
+    difficulty: 'intro',
+    estimatedMinutes: 15,
+  },
+]
+
+const moonLandingSources: Source[] = [
+  {
+    id: 'src-apollo11-yt',
+    title: 'Apollo 11 — The Complete Descent',
+    url: 'https://www.youtube.com/watch?v=RONIax0_1ec',
+    format: 'video',
+    author: 'NASA',
+    domain: 'youtube.com',
+    snippet: 'Restored footage of the actual Moon landing with mission audio — 20 minutes of pure history.',
+    difficulty: 'intro',
+    estimatedMinutes: 20,
+  },
+  {
+    id: 'src-margaret-yt',
+    title: 'Margaret Hamilton — The Woman Who Saved the Moon Landing',
+    url: 'https://www.youtube.com/watch?v=PPLDZMjgaf8',
+    format: 'video',
+    author: 'Great Big Story',
+    domain: 'youtube.com',
+    snippet: 'How Hamilton\'s software engineering prevented an abort 40 seconds before landing.',
+    difficulty: 'intro',
+    estimatedMinutes: 4,
+  },
+  {
+    id: 'src-apollo-wiki',
+    title: 'Apollo 11 — Wikipedia',
+    url: 'https://en.wikipedia.org/wiki/Apollo_11',
+    format: 'overview',
+    author: 'Wikipedia',
+    domain: 'wikipedia.org',
+    snippet: 'Comprehensive mission overview: crew, timeline, science, cultural impact.',
+    difficulty: 'intro',
+    estimatedMinutes: 20,
+  },
+  {
+    id: 'src-saturn-v-yt',
+    title: 'How NASA\'s Saturn V Rocket Worked',
+    url: 'https://www.youtube.com/watch?v=1LFKR_nfrYc',
+    format: 'video',
+    author: 'Jared Owen',
+    domain: 'youtube.com',
+    snippet: '3D animation explaining every stage of the most powerful rocket ever launched.',
+    difficulty: 'intro',
+    estimatedMinutes: 18,
+  },
+]
+
+const shuttleSources: Source[] = [
+  {
+    id: 'src-shuttle-yt',
+    title: 'The Space Shuttle — The Greatest Achievement in Engineering',
+    url: 'https://www.youtube.com/watch?v=SvaG0xDdP8g',
+    format: 'video',
+    author: 'Primal Space',
+    domain: 'youtube.com',
+    snippet: 'A deep look at the promise, problems, and legacy of the Space Shuttle program.',
+    difficulty: 'intermediate',
+    estimatedMinutes: 16,
+  },
+  {
+    id: 'src-challenger-yt',
+    title: 'The Challenger Disaster — What Went Wrong',
+    url: 'https://www.youtube.com/watch?v=2FehGJQlOf0',
+    format: 'video',
+    author: 'Curious Droid',
+    domain: 'youtube.com',
+    snippet: 'The O-ring failure, management decisions, and Feynman\'s ice-water demonstration.',
+    difficulty: 'intermediate',
+    estimatedMinutes: 12,
+  },
+  {
+    id: 'src-shuttle-nasa',
+    title: 'Space Shuttle Program — NASA Archives',
+    url: 'https://www.nasa.gov/mission_pages/shuttle/main/',
+    format: 'overview',
+    author: 'NASA',
+    domain: 'nasa.gov',
+    snippet: 'Official mission archive for all 135 Shuttle flights.',
+    difficulty: 'intro',
+    estimatedMinutes: 10,
+  },
+]
+
+const issSources: Source[] = [
+  {
+    id: 'src-iss-tour-yt',
+    title: 'Tour of the International Space Station',
+    url: 'https://www.youtube.com/watch?v=QvTmdIhYnes',
+    format: 'video',
+    author: 'NASA Johnson',
+    domain: 'youtube.com',
+    snippet: 'Astronaut-guided walkthrough of every module on the ISS — filmed in zero gravity.',
+    difficulty: 'intro',
+    estimatedMinutes: 25,
+  },
+  {
+    id: 'src-iss-nasa',
+    title: 'International Space Station — NASA',
+    url: 'https://www.nasa.gov/mission_pages/station/main/',
+    format: 'overview',
+    author: 'NASA',
+    domain: 'nasa.gov',
+    snippet: 'Live tracking, crew updates, and ongoing science aboard the station.',
+    difficulty: 'intro',
+    estimatedMinutes: 10,
+  },
+  {
+    id: 'src-iss-wiki',
+    title: 'International Space Station — Wikipedia',
+    url: 'https://en.wikipedia.org/wiki/International_Space_Station',
+    format: 'overview',
+    author: 'Wikipedia',
+    domain: 'wikipedia.org',
+    snippet: 'Assembly sequence, partner agencies, science experiments, and future plans.',
+    difficulty: 'intro',
+    estimatedMinutes: 20,
+  },
+]
+
+const commercialSpaceSources: Source[] = [
+  {
+    id: 'src-falcon-landing-yt',
+    title: 'SpaceX Falcon 9 — First Successful Landing',
+    url: 'https://www.youtube.com/watch?v=ANv5UfZsvZQ',
+    format: 'video',
+    author: 'SpaceX',
+    domain: 'youtube.com',
+    snippet: 'The moment orbital-class rocket reuse went from science fiction to reality.',
+    difficulty: 'intro',
+    estimatedMinutes: 3,
+  },
+  {
+    id: 'src-everyday-astronaut',
+    title: 'Why SpaceX is Making Starlink',
+    url: 'https://www.youtube.com/watch?v=giQ8xEWjnBs',
+    format: 'video',
+    author: 'Everyday Astronaut',
+    domain: 'youtube.com',
+    snippet: 'How SpaceX is funding Mars ambitions through satellite internet.',
+    difficulty: 'intermediate',
+    estimatedMinutes: 20,
+  },
+  {
+    id: 'src-spacex-wiki',
+    title: 'SpaceX — Wikipedia',
+    url: 'https://en.wikipedia.org/wiki/SpaceX',
+    format: 'overview',
+    author: 'Wikipedia',
+    domain: 'wikipedia.org',
+    snippet: 'Full history: founding, Falcon 1 failures, commercial crew, and Starship development.',
+    difficulty: 'intro',
+    estimatedMinutes: 25,
+  },
+]
+
+const marsSources: Source[] = [
+  {
+    id: 'src-perseverance-yt',
+    title: 'Perseverance Rover\'s Descent and Touchdown on Mars',
+    url: 'https://www.youtube.com/watch?v=4czjS9h4Fpg',
+    format: 'video',
+    author: 'NASA Jet Propulsion Laboratory',
+    domain: 'youtube.com',
+    snippet: 'Real footage: the "seven minutes of terror" from Mars atmospheric entry to surface.',
+    difficulty: 'intro',
+    estimatedMinutes: 4,
+  },
+  {
+    id: 'src-ingenuity-yt',
+    title: 'Ingenuity — First Flight on Another Planet',
+    url: 'https://www.youtube.com/watch?v=wMnOo2zcjXA',
+    format: 'video',
+    author: 'NASA',
+    domain: 'youtube.com',
+    snippet: 'Watch the first powered, controlled flight on Mars.',
+    difficulty: 'intro',
+    estimatedMinutes: 3,
+  },
+  {
+    id: 'src-starship-yt',
+    title: 'Starship — Everything You Need to Know',
+    url: 'https://www.youtube.com/watch?v=LbH1ZDImaI8',
+    format: 'video',
+    author: 'Everyday Astronaut',
+    domain: 'youtube.com',
+    snippet: 'Deep dive into the fully reusable rocket designed to take humans to Mars.',
+    difficulty: 'intermediate',
+    estimatedMinutes: 30,
+  },
+  {
+    id: 'src-mars-nasa',
+    title: 'Mars Exploration Program — NASA',
+    url: 'https://mars.nasa.gov/',
+    format: 'overview',
+    author: 'NASA',
+    domain: 'mars.nasa.gov',
+    snippet: 'Live mission data, rover position, weather reports from Mars, and science highlights.',
+    difficulty: 'intro',
+    estimatedMinutes: 15,
+  },
+]
 
 export const SAMPLE_JOURNEY_ERAS: Era[] = [
   {
@@ -39,6 +352,7 @@ export const SAMPLE_JOURNEY_ERAS: Era[] = [
     keyLocations: [
       { label: 'Auburn, Massachusetts', latitude: 42.20, longitude: -71.85, description: 'Site of Goddard\'s first liquid-fueled rocket launch (1926)' },
     ],
+    sources: earlyRocketrySources,
   },
   {
     id: 'v2-ww2',
@@ -69,6 +383,7 @@ export const SAMPLE_JOURNEY_ERAS: Era[] = [
       { label: 'Peenemünde, Germany', latitude: 54.15, longitude: 13.80, description: 'V-2 development and test site' },
       { label: 'White Sands, New Mexico', latitude: 32.39, longitude: -106.47, description: 'Post-war V-2 test launches by captured team' },
     ],
+    sources: v2Sources,
   },
   {
     id: 'sputnik',
@@ -98,6 +413,7 @@ export const SAMPLE_JOURNEY_ERAS: Era[] = [
     keyLocations: [
       { label: 'Baikonur Cosmodrome, Kazakhstan', latitude: 45.92, longitude: 63.34, description: 'Launch site of Sputnik 1' },
     ],
+    sources: sputnikSources,
   },
   {
     id: 'moon-landing',
@@ -132,6 +448,7 @@ export const SAMPLE_JOURNEY_ERAS: Era[] = [
       { label: 'Kennedy Space Center, Florida', latitude: 28.57, longitude: -80.65, description: 'Launch site of Apollo 11' },
       { label: 'Sea of Tranquility, Moon', latitude: 0.67, longitude: 23.47, description: 'Apollo 11 landing site' },
     ],
+    sources: moonLandingSources,
   },
   {
     id: 'shuttle-era',
@@ -164,6 +481,7 @@ export const SAMPLE_JOURNEY_ERAS: Era[] = [
     keyLocations: [
       { label: 'Kennedy Space Center, Florida', latitude: 28.57, longitude: -80.65, description: 'Primary Shuttle launch site' },
     ],
+    sources: shuttleSources,
   },
   {
     id: 'iss',
@@ -197,6 +515,7 @@ export const SAMPLE_JOURNEY_ERAS: Era[] = [
       { label: 'Johnson Space Center, Houston', latitude: 29.55, longitude: -95.09, description: 'ISS mission control' },
       { label: 'Baikonur Cosmodrome, Kazakhstan', latitude: 45.92, longitude: 63.34, description: 'Soyuz crew launch site for ISS' },
     ],
+    sources: issSources,
   },
   {
     id: 'commercial-space',
@@ -230,6 +549,7 @@ export const SAMPLE_JOURNEY_ERAS: Era[] = [
       { label: 'Cape Canaveral SLC-40', latitude: 28.49, longitude: -80.58, description: 'SpaceX primary East Coast launch pad' },
       { label: 'Hawthorne, California', latitude: 33.92, longitude: -118.33, description: 'SpaceX headquarters and factory' },
     ],
+    sources: commercialSpaceSources,
   },
   {
     id: 'mars-exploration',
@@ -264,6 +584,7 @@ export const SAMPLE_JOURNEY_ERAS: Era[] = [
       { label: 'Jezero Crater, Mars', latitude: 18.44, longitude: 77.45, description: 'Perseverance landing site — an ancient river delta' },
       { label: 'Starbase, Boca Chica, Texas', latitude: 25.99, longitude: -97.16, description: 'SpaceX Starship development and launch facility' },
     ],
+    sources: marsSources,
   },
 ]
 
