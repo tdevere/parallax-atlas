@@ -87,6 +87,87 @@ const packIcon = (id: string): string => {
   return '📚'
 }
 
+// ── Engagement level for progressive disclosure ───────────────────
+type EngagementLevel = 'new' | 'exploring' | 'intermediate' | 'advanced'
+
+const computeEngagementLevel = (
+  started: number,
+  mastered: number,
+  hasFocused: boolean,
+  streakDays: number,
+): EngagementLevel => {
+  // Advanced: 3+ mastered OR 60+ day streak
+  if (mastered >= 3 || streakDays >= 60) return 'advanced'
+  // Intermediate: any mastered era, OR 3+ started and has focused, OR 7+ day streak
+  if (mastered >= 1 || (started >= 3 && hasFocused) || streakDays >= 7) return 'intermediate'
+  // Exploring: started at least 1 era OR entered focus mode
+  if (started >= 1 || hasFocused) return 'exploring'
+  return 'new'
+}
+
+// ── Daily micro-goal generator ─────────────────────────────────
+interface MicroGoal {
+  label: string
+  eraId: string
+  eraName: string
+  type: 'review-due' | 'continue' | 'start-new'
+  minuteEstimate: number
+}
+
+const buildMicroGoals = (
+  eras: Era[],
+  progress: Record<string, number>,
+  reviewDue: Record<string, boolean>,
+  maxGoals: number = 3,
+): MicroGoal[] => {
+  const goals: MicroGoal[] = []
+
+  // Priority 1: Review-due eras (spaced repetition)
+  for (const era of eras) {
+    if (goals.length >= maxGoals) break
+    const p = progress[era.id] ?? 0
+    if (p > 0 && reviewDue[era.id]) {
+      goals.push({
+        label: `Review ${era.content} — no interaction in 3+ days`,
+        eraId: era.id,
+        eraName: era.content,
+        type: 'review-due',
+        minuteEstimate: 5,
+      })
+    }
+  }
+
+  // Priority 2: Continue in-progress eras (lowest progress first)
+  const inProgress = eras
+    .filter((e) => (progress[e.id] ?? 0) > 0 && (progress[e.id] ?? 0) < 100 && !reviewDue[e.id])
+    .sort((a, b) => (progress[a.id] ?? 0) - (progress[b.id] ?? 0))
+  for (const era of inProgress) {
+    if (goals.length >= maxGoals) break
+    goals.push({
+      label: `Continue ${era.content} — currently ${progress[era.id]}%`,
+      eraId: era.id,
+      eraName: era.content,
+      type: 'continue',
+      minuteEstimate: 10,
+    })
+  }
+
+  // Priority 3: Start a new era
+  const unstarted = eras.filter((e) => (progress[e.id] ?? 0) === 0)
+  for (const era of unstarted) {
+    if (goals.length >= maxGoals) break
+    goals.push({
+      label: `Start ${era.content} — brand new territory`,
+      eraId: era.id,
+      eraName: era.content,
+      type: 'start-new',
+      minuteEstimate: 10,
+    })
+  }
+
+  return goals
+}
+
 function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwitchContext }: AppProps) {
   const auth = useAuth()
   const resolvedContext = useMemo(() => resolveViewerContext(config), [config])
@@ -508,6 +589,26 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
 
   const showWelcome = momentumStats.started === 0 && !selectedEra && !activeLesson
 
+  // ── Progressive disclosure: engagement level ──────────────────
+  const engagementLevel = useMemo<EngagementLevel>(
+    () => computeEngagementLevel(momentumStats.started, momentumStats.mastered, hasSeenFocusOnboarding, streakInfo.currentStreak),
+    [momentumStats.started, momentumStats.mastered, hasSeenFocusOnboarding, streakInfo.currentStreak],
+  )
+  const showAdvancedControls = engagementLevel === 'intermediate' || engagementLevel === 'advanced' || currentMode === 'provided-context'
+
+  // ── Daily micro-goals ────────────────────────────────────────
+  const microGoals = useMemo(
+    () => buildMicroGoals(activeEras, progress, reviewDueByEra),
+    [activeEras, progress, reviewDueByEra],
+  )
+  const reviewDueCount = useMemo(
+    () => Object.values(reviewDueByEra).filter(Boolean).length,
+    [reviewDueByEra],
+  )
+
+  // ── Share/invite thresholds ──────────────────────────────────
+  const showShareInvite = engagementLevel === 'intermediate' || engagementLevel === 'advanced'
+
   const queueContextSwitchFlash = (nextMode: ViewerMode, nextPackId?: string) => {
     const nextPackName =
       nextMode === 'provided-context' && nextPackId
@@ -843,6 +944,86 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
                 </>
               )}
             </div>
+            {/* Right column: Micro-goals + Study-partner invite */}
+            <div className="space-y-4">
+              {/* Daily Micro-Goals */}
+              {microGoals.length > 0 && !showWelcome && (
+                <div className="rounded-lg border border-cyan-800/50 bg-slate-900/60 p-3" aria-label="Daily micro-goals">
+                  <h3 className="text-sm font-semibold text-cyan-200">
+                    📋 Today&apos;s Micro-Goals
+                    {reviewDueCount > 0 && (
+                      <span className="ml-2 rounded-full bg-amber-700/50 px-2 py-0.5 text-[11px] text-amber-200">{reviewDueCount} review due</span>
+                    )}
+                  </h3>
+                  <ul className="mt-2 space-y-1.5">
+                    {microGoals.map((goal) => (
+                      <li key={goal.eraId} className="group flex items-start gap-2">
+                        <span className={`mt-0.5 inline-block h-2 w-2 shrink-0 rounded-full ${
+                          goal.type === 'review-due' ? 'bg-amber-400' :
+                          goal.type === 'continue' ? 'bg-cyan-400' :
+                          'bg-slate-500'
+                        }`} />
+                        <button
+                          className="flex-1 text-left text-xs text-slate-300 transition hover:text-cyan-200"
+                          onClick={() => {
+                            const era = activeEras.find((e) => e.id === goal.eraId)
+                            if (era) handleSelectEra(era)
+                          }}
+                          type="button"
+                        >
+                          {goal.label}
+                        </button>
+                        <span className="shrink-0 text-[10px] text-slate-500">{goal.minuteEstimate}m</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 text-[10px] text-slate-500">
+                    Total: ~{microGoals.reduce((sum, g) => sum + g.minuteEstimate, 0)} minutes · {microGoals.length} goal{microGoals.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              )}
+              {/* Study-partner invite / share */}
+              {showShareInvite && !showWelcome && (
+                <div className="rounded-lg border border-violet-800/50 bg-slate-900/60 p-3" aria-label="Share and invite">
+                  <h3 className="text-sm font-semibold text-violet-200">🤝 Share Your Progress</h3>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {momentumStats.mastered >= 1
+                      ? `You've mastered ${momentumStats.mastered} era${momentumStats.mastered !== 1 ? 's' : ''}! Share your journey.`
+                      : `${momentumStats.strong} eras at 50%+. Invite a study partner to learn together.`}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      aria-label="Copy pack link to clipboard"
+                      className="rounded border border-violet-600 bg-violet-900/30 px-3 py-1.5 text-xs font-medium text-violet-100 transition hover:bg-violet-800/40"
+                      onClick={() => {
+                        const url = new URL(window.location.href)
+                        navigator.clipboard.writeText(url.toString()).then(() => {
+                          setContextSwitchFlash('Link copied to clipboard!')
+                          setTimeout(() => setContextSwitchFlash(null), 2500)
+                        })
+                      }}
+                      type="button"
+                    >
+                      🔗 Copy Pack Link
+                    </button>
+                    <button
+                      aria-label="Export progress as shareable image"
+                      className="rounded border border-emerald-600 bg-emerald-900/30 px-3 py-1.5 text-xs font-medium text-emerald-100 transition hover:bg-emerald-800/40"
+                      onClick={handleExportImage}
+                      type="button"
+                    >
+                      📸 Share Snapshot
+                    </button>
+                  </div>
+                </div>
+              )}
+              {/* Engagement level indicator for transparency */}
+              {!showWelcome && (
+                <p className="text-[10px] text-slate-600" aria-label="Engagement level">
+                  Level: {engagementLevel}{showAdvancedControls ? ' · Advanced controls visible' : ''}
+                </p>
+              )}
+            </div>
           </div>
         )}
       </section>
@@ -958,25 +1139,30 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
             <span className="text-slate-600">Click a timeline era to focus</span>
           )}
         </div>
+        {/* Advanced controls — progressively disclosed based on engagement level */}
         <div className="hidden flex-wrap items-center gap-1.5 text-[11px] md:flex">
-          <select
-            aria-label="Subgraph sort mode"
-            className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-slate-100"
-            onChange={(event) => setSortMode(event.target.value as SubgraphSortMode)}
-            value={sortMode}
-          >
-            <option value="chronological">Chronological</option>
-            <option value="prerequisite-order">Prereq Order</option>
-          </select>
-          <label className="inline-flex items-center gap-1 text-slate-300" htmlFor="ghost-layer-toggle">
-            <input
-              checked={ghostLayerMode === 'prerequisites'}
-              id="ghost-layer-toggle"
-              onChange={(event) => setGhostLayerMode(event.target.checked ? 'prerequisites' : 'off')}
-              type="checkbox"
-            />
-            Ghost
-          </label>
+          {showAdvancedControls && (
+            <>
+              <select
+                aria-label="Subgraph sort mode"
+                className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-slate-100"
+                onChange={(event) => setSortMode(event.target.value as SubgraphSortMode)}
+                value={sortMode}
+              >
+                <option value="chronological">Chronological</option>
+                <option value="prerequisite-order">Prereq Order</option>
+              </select>
+              <label className="inline-flex items-center gap-1 text-slate-300" htmlFor="ghost-layer-toggle">
+                <input
+                  checked={ghostLayerMode === 'prerequisites'}
+                  id="ghost-layer-toggle"
+                  onChange={(event) => setGhostLayerMode(event.target.checked ? 'prerequisites' : 'off')}
+                  type="checkbox"
+                />
+                Ghost
+              </label>
+            </>
+          )}
           <span aria-label="Zoom band status" className="rounded-full border border-slate-700 px-2 py-0.5 text-slate-400">
             {zoomBand} · L{zoomLevel.toFixed(1)}
           </span>

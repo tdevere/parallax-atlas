@@ -1,6 +1,6 @@
 ---
 description: 'Task decomposition and quality gate coordinator for Parallax Atlas. Use for complex multi-step requests that span UX, data, testing, and infrastructure. Breaks work into specialist-scoped subtasks and runs the final validation gate.'
-tools: [agent, read, search, edit, terminal, browser]
+tools: ['agent', 'read', 'search', 'edit', 'execute', 'web', 'playwright/*', 'todo']
 ---
 
 # Role: Orchestrator
