@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/test'
 
-// Auto-bypass the landing page for all tests.
-// Landing-page-specific tests override this by clearing the session flag.
+// Auto-bypass the landing page and sample journey for all tests.
+// Tests that specifically exercise sample journey behavior override these flags.
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     window.sessionStorage.setItem('parallax-atlas-entered', '1')
+    window.localStorage.setItem('parallax-atlas-sample-dismissed', 'true')
   })
 })
 
@@ -559,9 +560,10 @@ test('civ map does not auto-enable for packs without geographic data', async ({ 
 
 // ── Tier 3: Progressive disclosure ──────────────────────────────────
 test('advanced controls are hidden for new users and revealed after engagement', async ({ page }) => {
-  // Clear all progress so user starts fresh
+  // Clear all progress so user starts fresh, but keep sample dismissed for built-in testing
   await page.addInitScript(() => {
     window.localStorage.clear()
+    window.localStorage.setItem('parallax-atlas-sample-dismissed', 'true')
   })
 
   await page.goto('/')
@@ -627,6 +629,7 @@ test('daily micro-goals appear for users with in-progress eras', async ({ page }
 test('micro-goals are not shown on welcome screen', async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.clear()
+    window.localStorage.setItem('parallax-atlas-sample-dismissed', 'true')
   })
 
   await page.goto('/')
@@ -664,6 +667,7 @@ test('share invite section appears after reaching mastery threshold', async ({ p
 test('share invite section is hidden for new users', async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.clear()
+    window.localStorage.setItem('parallax-atlas-sample-dismissed', 'true')
   })
 
   await page.goto('/')
@@ -741,4 +745,37 @@ test('landing page sign-in button triggers auth redirect', async ({ page }) => {
 
   // Verify the auth redirect was attempted
   expect(authRedirectUrl).toContain('.auth/login/aad')
+})
+
+test('sample journey auto-loads for zero-progress users and can be dismissed', async ({ page }) => {
+  // Override the beforeEach: remove the sample-dismissed flag so sample loads
+  await page.addInitScript(() => {
+    window.localStorage.removeItem('parallax-atlas-sample-dismissed')
+  })
+
+  await page.goto('/')
+
+  // Sample journey banner should be visible
+  await expect(page.getByTestId('sample-journey-banner')).toBeVisible()
+  await expect(page.getByText('History of Space Exploration')).toBeVisible()
+  await expect(page.getByText('(sample)')).toBeVisible()
+
+  // Sample eras should be in the sidebar (not built-in eras)
+  await expect(page.locator('aside li', { hasText: 'Apollo 11 Moon Landing' })).toBeVisible()
+  await expect(page.locator('aside li', { hasText: 'Big Bang' })).toHaveCount(0)
+
+  // "Create Your Own" button should be present
+  await expect(page.getByTestId('sample-create-own-btn')).toBeVisible()
+
+  // Dismiss the sample
+  await page.getByTestId('sample-dismiss-btn').click()
+
+  // Banner should disappear, built-in eras should return
+  await expect(page.getByTestId('sample-journey-banner')).toHaveCount(0)
+  await expect(page.locator('aside li', { hasText: 'Big Bang' })).toBeVisible()
+
+  // Reload: sample should NOT auto-load again (dismissed flag persisted)
+  await page.reload()
+  await expect(page.getByTestId('sample-journey-banner')).toHaveCount(0)
+  await expect(page.locator('aside li', { hasText: 'Big Bang' })).toBeVisible()
 })

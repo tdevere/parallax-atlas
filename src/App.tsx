@@ -11,6 +11,7 @@ import { ProgressSidebar } from './components/ProgressSidebar'
 import { SourcePanel } from './components/SourcePanel'
 import { Timeline } from './components/Timeline'
 import type { Era } from './data/timeline-data'
+import { SAMPLE_JOURNEY_ERAS, SAMPLE_JOURNEY_NAME, SAMPLE_JOURNEY_PROGRESS } from './data/sample-journey'
 import { useKnowledgeTree } from './knowledge-tree'
 import { buildLearnerProfile } from './lesson/learner-profile'
 import type { LessonPlan } from './lesson/lesson-types'
@@ -230,6 +231,7 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
   const [showJourneyCreator, setShowJourneyCreator] = useState(false)
   const [activeLesson, setActiveLesson] = useState<LessonPlan | null>(null)
   const [generatedEras, setGeneratedEras] = useState<Era[] | null>(null)
+  const [isSampleJourney, setIsSampleJourney] = useState(false)
 
   /** Active eras — generated lesson eras take priority when a lesson is loaded */
   const activeEras = generatedEras ?? resolvedContext.eras
@@ -306,10 +308,30 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
   }, [showCivMap, civMapStorageKey])
 
   useEffect(() => {
+    // Don't persist sample journey progress to storage
+    if (isSampleJourney) return
     if (Object.keys(progress).length > 0) {
       progressStore.save(progress)
     }
-  }, [progress, progressStore])
+  }, [progress, progressStore, isSampleJourney])
+
+  // ── Auto-load sample journey for zero-progress users ─────────
+  useEffect(() => {
+    // Skip if user has already dismissed the sample, or has active lesson/eras
+    const dismissed = window.localStorage.getItem('parallax-atlas-sample-dismissed')
+    if (dismissed === 'true') return
+    if (generatedEras || activeLesson) return
+
+    // Check if user has any real progress on built-in eras (from storage)
+    const storedProgress = progressStore.load()
+    const hasRealProgress = resolvedContext.eras.some((era) => (storedProgress?.[era.id] ?? 0) > 0)
+    if (hasRealProgress) return
+
+    setGeneratedEras(SAMPLE_JOURNEY_ERAS)
+    setProgress({ ...SAMPLE_JOURNEY_PROGRESS })
+    setIsSampleJourney(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentionally mount-only
+  }, [])
 
   useEffect(() => {
     window.localStorage.setItem(MASTERY_INTERACTION_STORAGE_KEY, JSON.stringify(lastInteractedAt))
@@ -480,9 +502,22 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
   const handleExitLesson = useCallback(() => {
     setGeneratedEras(null)
     setActiveLesson(null)
+    setIsSampleJourney(false)
     setSelectedEra(null)
     setProgress(normalizeProgress(resolvedContext.eras, resolvedContext.initialProgress, progressStore.load()))
     setContextSwitchFlash('Returned to previous context')
+    const timeoutId = window.setTimeout(() => setContextSwitchFlash(null), 2600)
+    return () => window.clearTimeout(timeoutId)
+  }, [progressStore, resolvedContext.eras, resolvedContext.initialProgress])
+
+  /** Exit the sample journey and return to built-in eras */
+  const handleExitSample = useCallback(() => {
+    window.localStorage.setItem('parallax-atlas-sample-dismissed', 'true')
+    setGeneratedEras(null)
+    setIsSampleJourney(false)
+    setSelectedEra(null)
+    setProgress(normalizeProgress(resolvedContext.eras, resolvedContext.initialProgress, progressStore.load()))
+    setContextSwitchFlash('Returned to built-in timeline')
     const timeoutId = window.setTimeout(() => setContextSwitchFlash(null), 2600)
     return () => window.clearTimeout(timeoutId)
   }, [progressStore, resolvedContext.eras, resolvedContext.initialProgress])
@@ -499,6 +534,7 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
     setProgress(packProgress)
     setSelectedEra(null)
     setActiveLesson(null)
+    setIsSampleJourney(false)
     setShowJourneyCreator(false)
     setShowSourcePanel(false)
     setReturnTarget(null)
@@ -610,7 +646,7 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
 
   const drillContextLabel = selectedEra ? `Drill t0: ${selectedEra.content}` : null
 
-  const showWelcome = momentumStats.started === 0 && !selectedEra && !activeLesson
+  const showWelcome = momentumStats.started === 0 && !selectedEra && !activeLesson && !isSampleJourney
 
   // ── Progressive disclosure: engagement level ──────────────────
   const engagementLevel = useMemo<EngagementLevel>(
@@ -843,6 +879,42 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
           </div>
         </div>
       </header>
+      {/* ── Sample journey banner ──────────────────────────────── */}
+      {isSampleJourney && (
+        <div className="border-b border-emerald-800/50 bg-gradient-to-r from-emerald-950/60 via-emerald-900/40 to-emerald-950/60 px-4 py-2.5" data-testid="sample-journey-banner">
+          <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-3">
+              <span className="text-lg">🚀</span>
+              <div>
+                <p className="text-sm font-semibold text-emerald-100">
+                  Exploring: <span className="text-white">{SAMPLE_JOURNEY_NAME}</span> <span className="text-emerald-400">(sample)</span>
+                </p>
+                <p className="text-xs text-emerald-300/80">Click any era to explore. This is what an AI-generated journey looks like.</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                aria-label="Create your own AI-generated journey"
+                className="rounded-lg border border-emerald-500 bg-emerald-800/50 px-4 py-1.5 text-sm font-semibold text-emerald-100 shadow-sm transition hover:bg-emerald-700/60 hover:text-white"
+                data-testid="sample-create-own-btn"
+                onClick={() => setShowJourneyCreator(true)}
+                type="button"
+              >
+                ✨ Create Your Own
+              </button>
+              <button
+                aria-label="Dismiss sample journey"
+                className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-400 transition hover:border-slate-500 hover:text-slate-200"
+                data-testid="sample-dismiss-btn"
+                onClick={handleExitSample}
+                type="button"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <section aria-label="Today's mission" className="border-b border-cyan-900/40 bg-gradient-to-r from-slate-950 via-cyan-950/40 to-slate-950 px-4">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between py-2">
           <button

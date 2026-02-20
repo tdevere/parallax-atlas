@@ -1,0 +1,274 @@
+/**
+ * Pre-built sample journey for zero-friction new user onboarding.
+ *
+ * This pack loads instantly when a new user enters with no progress,
+ * showing them what a generated journey looks like before they create
+ * their own. Covers "History of Space Exploration" — a universally
+ * interesting topic with geographic variety and clear progression.
+ */
+
+import type { Era } from './timeline-data'
+
+export const SAMPLE_JOURNEY_NAME = 'History of Space Exploration'
+export const SAMPLE_JOURNEY_PACK_ID = '_sample-space-exploration'
+
+export const SAMPLE_JOURNEY_ERAS: Era[] = [
+  {
+    id: 'early-rocketry',
+    content: 'Early Rocketry',
+    start: 98,
+    end: 80,
+    group: 'Foundations',
+    description: 'Robert Goddard launches the first liquid-fueled rocket in 1926, proving that space travel is physically possible.',
+    difficulty: 'intro',
+    learningObjectives: ['Explain why liquid fuel was a breakthrough over solid propellants', 'Identify Goddard\'s key contributions'],
+    estimatedMinutes: 8,
+    skillTags: ['physics', 'engineering'],
+    geoCenter: { latitude: 42.27, longitude: -71.80, zoom: 8 },
+    region: 'Americas',
+    payload: {
+      taskType: 'guided-reading',
+      missionTitle: 'The Father of Rocketry',
+      prompt: 'Read about Goddard\'s 1926 launch. What problem did liquid fuel solve that solid rockets couldn\'t?',
+      completionEvidenceHint: 'Can explain the advantage of liquid fuel in one sentence',
+    },
+    subtopics: [
+      { id: 'goddard-patents', label: 'Goddard\'s 214 Patents', description: 'The inventions that made modern rocketry possible' },
+      { id: 'tsiolkovsky-theory', label: 'Tsiolkovsky\'s Rocket Equation', description: 'The Russian theorist who calculated orbital mechanics decades before any launch' },
+    ],
+    keyLocations: [
+      { label: 'Auburn, Massachusetts', latitude: 42.20, longitude: -71.85, description: 'Site of Goddard\'s first liquid-fueled rocket launch (1926)' },
+    ],
+  },
+  {
+    id: 'v2-ww2',
+    content: 'V-2 & the Space Race Origins',
+    start: 80,
+    end: 68,
+    group: 'Foundations',
+    description: 'Germany\'s V-2 becomes the first human-made object to reach space. After WWII, captured scientists seed both the US and Soviet programs.',
+    difficulty: 'intro',
+    learningObjectives: ['Describe how WWII accelerated rocket development', 'Explain Operation Paperclip\'s significance'],
+    estimatedMinutes: 10,
+    skillTags: ['history', 'geopolitics'],
+    prerequisiteIds: ['early-rocketry'],
+    connections: [{ targetEraId: 'early-rocketry', kind: 'influence', strength: 0.9 }],
+    geoCenter: { latitude: 54.15, longitude: 13.80, zoom: 7 },
+    region: 'Europe',
+    payload: {
+      taskType: 'active-recall',
+      missionTitle: 'From Weapon to Spacecraft',
+      prompt: 'Without looking it up, list 3 ways the V-2 program influenced the post-war space race.',
+      completionEvidenceHint: 'Can name at least 3 direct connections between V-2 and later programs',
+    },
+    subtopics: [
+      { id: 'operation-paperclip', label: 'Operation Paperclip', description: 'How the US recruited German rocket scientists' },
+      { id: 'von-braun', label: 'Wernher von Braun', description: 'From V-2 designer to NASA\'s chief architect' },
+    ],
+    keyLocations: [
+      { label: 'Peenemünde, Germany', latitude: 54.15, longitude: 13.80, description: 'V-2 development and test site' },
+      { label: 'White Sands, New Mexico', latitude: 32.39, longitude: -106.47, description: 'Post-war V-2 test launches by captured team' },
+    ],
+  },
+  {
+    id: 'sputnik',
+    content: 'Sputnik & the Space Race',
+    start: 68,
+    end: 63,
+    group: 'The Space Race',
+    description: 'The Soviet Union launches Sputnik in 1957 — the first artificial satellite. The Space Race officially begins, reshaping geopolitics and science funding.',
+    difficulty: 'intro',
+    learningObjectives: ['Explain why Sputnik shocked the West', 'Connect Sputnik to the creation of NASA'],
+    estimatedMinutes: 10,
+    skillTags: ['geopolitics', 'technology'],
+    prerequisiteIds: ['v2-ww2'],
+    connections: [{ targetEraId: 'v2-ww2', kind: 'influence', strength: 0.8 }],
+    geoCenter: { latitude: 45.92, longitude: 63.34, zoom: 6 },
+    region: 'Asia',
+    payload: {
+      taskType: 'concept-sorting',
+      missionTitle: 'The Beep Heard Around the World',
+      prompt: 'Sort these events in order: NASA founded, Sputnik launch, Explorer 1 launch, Gagarin\'s flight. Then explain why the order matters.',
+      completionEvidenceHint: 'Correct chronological order with a sentence on cause-and-effect',
+    },
+    subtopics: [
+      { id: 'sputnik-crisis', label: 'The Sputnik Crisis', description: 'How a beeping satellite triggered massive US education and defense reforms' },
+      { id: 'nasa-creation', label: 'NASA\'s Creation (1958)', description: 'Congress creates a civilian space agency in direct response to Soviet success' },
+    ],
+    keyLocations: [
+      { label: 'Baikonur Cosmodrome, Kazakhstan', latitude: 45.92, longitude: 63.34, description: 'Launch site of Sputnik 1' },
+    ],
+  },
+  {
+    id: 'moon-landing',
+    content: 'Apollo 11 Moon Landing',
+    start: 56,
+    end: 53,
+    group: 'The Space Race',
+    description: 'On July 20, 1969, Neil Armstrong and Buzz Aldrin become the first humans to walk on the Moon. 600 million people watch live on television.',
+    difficulty: 'intro',
+    learningObjectives: ['Describe the key engineering challenges of Apollo', 'Explain the cultural impact of the Moon landing'],
+    estimatedMinutes: 12,
+    skillTags: ['engineering', 'culture', 'leadership'],
+    prerequisiteIds: ['sputnik'],
+    connections: [
+      { targetEraId: 'sputnik', kind: 'influence', strength: 0.9 },
+      { targetEraId: 'shuttle-era', kind: 'influence', strength: 0.7 },
+    ],
+    geoCenter: { latitude: 28.57, longitude: -80.65, zoom: 9 },
+    region: 'Americas',
+    payload: {
+      taskType: 'active-recall',
+      missionTitle: 'One Giant Leap',
+      prompt: 'Close your eyes and narrate the Moon landing sequence from launch to splashdown. What did you forget?',
+      completionEvidenceHint: 'Can narrate the major mission phases without notes',
+    },
+    subtopics: [
+      { id: 'saturn-v', label: 'Saturn V Rocket', description: 'The most powerful rocket ever successfully flown — still holds the record' },
+      { id: 'apollo-guidance', label: 'Apollo Guidance Computer', description: 'Margaret Hamilton\'s software that saved the landing when alarms fired' },
+      { id: 'apollo-legacy', label: 'Cultural Legacy', description: 'How the Moon landing redefined what humanity believed was possible' },
+    ],
+    keyLocations: [
+      { label: 'Kennedy Space Center, Florida', latitude: 28.57, longitude: -80.65, description: 'Launch site of Apollo 11' },
+      { label: 'Sea of Tranquility, Moon', latitude: 0.67, longitude: 23.47, description: 'Apollo 11 landing site' },
+    ],
+  },
+  {
+    id: 'shuttle-era',
+    content: 'Space Shuttle Program',
+    start: 44,
+    end: 13,
+    group: 'Orbital Operations',
+    description: 'NASA\'s reusable Space Shuttle flies 135 missions over 30 years, building the ISS but also suffering the Challenger and Columbia disasters.',
+    difficulty: 'intermediate',
+    learningObjectives: ['Evaluate the Shuttle\'s reusability trade-offs', 'Analyze how the Challenger disaster changed NASA\'s culture'],
+    estimatedMinutes: 15,
+    skillTags: ['engineering', 'risk-management', 'policy'],
+    prerequisiteIds: ['moon-landing'],
+    connections: [
+      { targetEraId: 'moon-landing', kind: 'contrast', strength: 0.7 },
+      { targetEraId: 'iss', kind: 'influence', strength: 0.9 },
+    ],
+    geoCenter: { latitude: 28.57, longitude: -80.65, zoom: 8 },
+    region: 'Americas',
+    payload: {
+      taskType: 'synthesis-challenge',
+      missionTitle: 'Promise vs. Reality',
+      prompt: 'The Shuttle was supposed to make space access routine and cheap. Analyze why it didn\'t — identify 3 design trade-offs that undermined the original vision.',
+      completionEvidenceHint: 'Can articulate specific engineering/economic trade-offs, not just "it was expensive"',
+    },
+    subtopics: [
+      { id: 'challenger-disaster', label: 'Challenger Disaster (1986)', description: 'O-ring failure, organizational culture, and the Feynman investigation' },
+      { id: 'hubble-servicing', label: 'Hubble Telescope Servicing', description: 'The Shuttle\'s finest hour — fixing a flawed mirror in orbit' },
+    ],
+    keyLocations: [
+      { label: 'Kennedy Space Center, Florida', latitude: 28.57, longitude: -80.65, description: 'Primary Shuttle launch site' },
+    ],
+  },
+  {
+    id: 'iss',
+    content: 'International Space Station',
+    start: 27,
+    end: 2,
+    group: 'Orbital Operations',
+    description: 'The ISS becomes the largest structure ever assembled in orbit — a collaboration among 15 nations, continuously crewed since 2000.',
+    difficulty: 'intermediate',
+    learningObjectives: ['Explain how international cooperation works in space', 'Describe key scientific discoveries made on the ISS'],
+    estimatedMinutes: 12,
+    skillTags: ['diplomacy', 'biology', 'engineering'],
+    prerequisiteIds: ['shuttle-era'],
+    connections: [
+      { targetEraId: 'shuttle-era', kind: 'influence', strength: 0.8 },
+      { targetEraId: 'commercial-space', kind: 'influence', strength: 0.7 },
+    ],
+    geoCenter: { latitude: 51.77, longitude: -0.33, zoom: 3 },
+    region: 'Global',
+    payload: {
+      taskType: 'active-recall',
+      missionTitle: 'A Home in Orbit',
+      prompt: 'Name 5 countries that contribute to the ISS and explain what each provides (modules, crew transport, science).',
+      completionEvidenceHint: 'Can identify partner agencies and their contributions',
+    },
+    subtopics: [
+      { id: 'iss-assembly', label: 'Assembly Sequence', description: '40+ launches over a decade to build a football-field-sized station' },
+      { id: 'microgravity-science', label: 'Microgravity Research', description: 'Protein crystals, fluid physics, and human health in zero-g' },
+    ],
+    keyLocations: [
+      { label: 'Johnson Space Center, Houston', latitude: 29.55, longitude: -95.09, description: 'ISS mission control' },
+      { label: 'Baikonur Cosmodrome, Kazakhstan', latitude: 45.92, longitude: 63.34, description: 'Soyuz crew launch site for ISS' },
+    ],
+  },
+  {
+    id: 'commercial-space',
+    content: 'Commercial Space Revolution',
+    start: 18,
+    end: 1,
+    group: 'New Space',
+    description: 'SpaceX, Blue Origin, and others upend the launch industry. Falcon 9 lands and flies again, cutting costs by an order of magnitude.',
+    difficulty: 'intermediate',
+    learningObjectives: ['Analyze how reusability changed launch economics', 'Compare public vs. private space development models'],
+    estimatedMinutes: 12,
+    skillTags: ['economics', 'engineering', 'entrepreneurship'],
+    prerequisiteIds: ['shuttle-era'],
+    connections: [
+      { targetEraId: 'shuttle-era', kind: 'contrast', strength: 0.8 },
+      { targetEraId: 'mars-exploration', kind: 'influence', strength: 0.7 },
+    ],
+    geoCenter: { latitude: 28.49, longitude: -80.58, zoom: 10 },
+    region: 'Americas',
+    payload: {
+      taskType: 'synthesis-challenge',
+      missionTitle: 'The Reusability Revolution',
+      prompt: 'Compare the cost-per-kg to orbit of the Space Shuttle vs. Falcon 9. What design philosophy difference explains the gap?',
+      completionEvidenceHint: 'Can cite approximate cost figures and link them to architectural choices',
+    },
+    subtopics: [
+      { id: 'falcon-landing', label: 'First Falcon 9 Landing (2015)', description: 'The moment that proved orbital-class rocket reuse was viable' },
+      { id: 'crew-dragon', label: 'Crew Dragon', description: 'SpaceX returns crewed launch capability to US soil after a 9-year gap' },
+    ],
+    keyLocations: [
+      { label: 'Cape Canaveral SLC-40', latitude: 28.49, longitude: -80.58, description: 'SpaceX primary East Coast launch pad' },
+      { label: 'Hawthorne, California', latitude: 33.92, longitude: -118.33, description: 'SpaceX headquarters and factory' },
+    ],
+  },
+  {
+    id: 'mars-exploration',
+    content: 'Mars & Beyond',
+    start: 5,
+    end: 0,
+    group: 'New Space',
+    description: 'Perseverance lands on Mars with Ingenuity — the first helicopter on another planet. Starship tests aim for crewed Mars missions in the 2030s.',
+    difficulty: 'intro',
+    learningObjectives: ['Describe current Mars exploration goals', 'Identify the biggest challenges for human Mars missions'],
+    estimatedMinutes: 10,
+    skillTags: ['planetary-science', 'engineering', 'biology'],
+    prerequisiteIds: ['commercial-space'],
+    connections: [
+      { targetEraId: 'commercial-space', kind: 'application', strength: 0.8 },
+      { targetEraId: 'moon-landing', kind: 'analogy', strength: 0.6 },
+    ],
+    geoCenter: { latitude: 18.44, longitude: 77.45, zoom: 4 },
+    region: 'Global',
+    payload: {
+      taskType: 'reflection',
+      missionTitle: 'Our Next Giant Leap',
+      prompt: 'What is the single biggest obstacle to humans living on Mars? Defend your answer with evidence from at least 2 sources.',
+      completionEvidenceHint: 'Can argue a position with specific technical evidence (radiation, life support, psychology, cost)',
+    },
+    subtopics: [
+      { id: 'perseverance-ingenuity', label: 'Perseverance & Ingenuity', description: 'A rover and helicopter exploring Jezero Crater together' },
+      { id: 'starship-program', label: 'SpaceX Starship', description: 'The fully reusable mega-rocket designed for Mars colonization' },
+      { id: 'mars-challenges', label: 'Human Mars Challenges', description: 'Radiation, 7-month transit, no resupply, psychological isolation' },
+    ],
+    keyLocations: [
+      { label: 'Jezero Crater, Mars', latitude: 18.44, longitude: 77.45, description: 'Perseverance landing site — an ancient river delta' },
+      { label: 'Starbase, Boca Chica, Texas', latitude: 25.99, longitude: -97.16, description: 'SpaceX Starship development and launch facility' },
+    ],
+  },
+]
+
+/** Progress object initialized to 0 for each era */
+export const SAMPLE_JOURNEY_PROGRESS: Record<string, number> = SAMPLE_JOURNEY_ERAS.reduce<Record<string, number>>(
+  (acc, era) => { acc[era.id] = 0; return acc },
+  {},
+)
