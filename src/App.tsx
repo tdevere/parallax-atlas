@@ -747,7 +747,7 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
             )}
             <button
               aria-label="Create a new AI-generated learning journey"
-              className="rounded border border-indigo-600 bg-indigo-900/30 px-2 py-0.5 text-xs font-medium text-indigo-200 hover:bg-indigo-800/40"
+              className="rounded border border-emerald-500 bg-emerald-900/40 px-2.5 py-1 text-xs font-semibold text-emerald-100 shadow-sm shadow-emerald-900/30 transition hover:bg-emerald-800/50"
               onClick={() => setShowJourneyCreator(true)}
               type="button"
               data-testid="create-journey-btn"
@@ -755,12 +755,13 @@ function App({ config, availablePacks = [], notices = [], bingMapsApiKey, onSwit
               ✨ Create Journey
             </button>
             <button
-              aria-label="Start learning a new subject"
-              className="rounded border border-emerald-600 bg-emerald-900/30 px-2 py-0.5 text-xs font-medium text-emerald-200 hover:bg-emerald-800/40"
+              aria-label="Start learning with your own API key"
+              className="hidden rounded border border-slate-700 bg-slate-800/60 px-2 py-0.5 text-xs text-slate-400 transition hover:border-slate-600 hover:text-slate-300 sm:inline-flex"
               onClick={() => setShowLessonLauncher(true)}
               type="button"
+              title="Generate a lesson using your own OpenAI/Anthropic API key (advanced)"
             >
-              🚀 Start Learning
+              🔑 Own Key
             </button>
             {availablePacks.length === 0 && <span className="hidden text-[11px] text-amber-300 md:inline">No subject packs available</span>}
             <select
