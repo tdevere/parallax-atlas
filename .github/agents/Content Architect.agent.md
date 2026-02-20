@@ -1,6 +1,6 @@
 ---
 description: 'Subject-pack and era data specialist for Parallax Atlas. Use when creating, editing, or validating subject packs, era definitions, region mappings, knowledge-tree prerequisites, or timeline-data schema.'
-tools: [agent, read, search, edit, terminal]
+tools: ['agent', 'read', 'search', 'edit', 'execute', 'todo']
 ---
 
 # Role: Content Architect

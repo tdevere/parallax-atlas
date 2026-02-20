@@ -1,6 +1,6 @@
 ---
 description: 'Playwright E2E test specialist for Parallax Atlas. Use when writing, debugging, or expanding test coverage for timeline interactions, boot modes, focus navigation, subject packs, and user-observable behavior.'
-tools: [agent, read, search, edit, terminal]
+tools: ['agent', 'read', 'search', 'edit', 'execute', 'playwright/*', 'todo']
 ---
 
 # Role: QA Engineer
