@@ -1,6 +1,6 @@
 ---
 description: 'Spatial visualization specialist for Parallax Atlas. Use for CivilizationMap SVG rendering, AzureMapPanel Bing Maps integration, viewport-sync between timeline and map, geographic era data, and world-regions-geo path generation.'
-tools: [agent, read, search, edit, terminal]
+tools: ['agent', 'read', 'search', 'edit', 'execute', 'todo']
 ---
 
 # Role: Spatial Systems Architect

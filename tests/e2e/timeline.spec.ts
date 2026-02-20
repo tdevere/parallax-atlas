@@ -548,3 +548,118 @@ test('civ map does not auto-enable for packs without geographic data', async ({ 
   // The SVG map should NOT be rendered
   await expect(page.locator('svg[aria-label="Civilization progress map"]')).toHaveCount(0)
 })
+
+// ── Tier 3: Progressive disclosure ──────────────────────────────────
+test('advanced controls are hidden for new users and revealed after engagement', async ({ page }) => {
+  // Clear all progress so user starts fresh
+  await page.addInitScript(() => {
+    window.localStorage.clear()
+  })
+
+  await page.goto('/')
+
+  // New user: sort mode select and ghost toggle should NOT be in the DOM
+  await expect(page.getByLabel('Subgraph sort mode')).toHaveCount(0)
+  await expect(page.locator('#ghost-layer-toggle')).toHaveCount(0)
+
+  // Engagement level indicator is hidden on welcome screen (showWelcome=true)
+  await expect(page.locator('[aria-label="Engagement level"]')).toHaveCount(0)
+})
+
+test('advanced controls become visible when engagement threshold is met', async ({ page }) => {
+  // Pre-seed localStorage so user appears as intermediate (1 mastered era → intermediate)
+  await page.addInitScript(() => {
+    const progress = {
+      'big-bang': 100,
+      'first-stars': 50,
+      'reionization': 50,
+      'first-life': 25,
+    }
+    window.localStorage.setItem('knowledge-timeline-progress', JSON.stringify(progress))
+  })
+
+  await page.goto('/')
+
+  // With 1 mastered era, engagement should be intermediate or higher
+  const engagementLabel = page.locator('[aria-label="Engagement level"]')
+  await expect(engagementLabel).toBeVisible()
+  const text = await engagementLabel.textContent()
+  expect(text).toMatch(/intermediate|advanced/)
+
+  // Sort mode dropdown should now be visible
+  await expect(page.getByLabel('Subgraph sort mode')).toBeVisible()
+})
+
+// ── Tier 3: Daily micro-goals ───────────────────────────────────────
+test('daily micro-goals appear for users with in-progress eras', async ({ page }) => {
+  // Pre-seed some progress using correct storage key
+  await page.addInitScript(() => {
+    const progress = {
+      'big-bang': 25,
+      'solar-system': 0,
+      'first-life': 75,
+    }
+    window.localStorage.setItem('knowledge-timeline-progress', JSON.stringify(progress))
+  })
+
+  await page.goto('/')
+
+  // Micro-goals section should be visible in coach panel
+  const goalsSection = page.locator('[aria-label="Daily micro-goals"]')
+  await expect(goalsSection).toBeVisible()
+
+  // Should show at least one goal (continue Big Bang or continue First Life)
+  const goalButtons = await goalsSection.locator('button').count()
+  expect(goalButtons).toBeGreaterThanOrEqual(1)
+
+  // Should show a time estimate
+  await expect(goalsSection.getByText(/minutes/)).toBeVisible()
+})
+
+test('micro-goals are not shown on welcome screen', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.clear()
+  })
+
+  await page.goto('/')
+
+  // Welcome state: micro-goals should be hidden
+  await expect(page.locator('[aria-label="Daily micro-goals"]')).toHaveCount(0)
+})
+
+// ── Tier 3: Study-partner invite / share ────────────────────────────
+test('share invite section appears after reaching mastery threshold', async ({ page }) => {
+  // Pre-seed a mastered era (mastered=1 → intermediate → showShareInvite=true)
+  await page.addInitScript(() => {
+    const progress = {
+      'big-bang': 100,
+      'first-stars': 50,
+      'first-life': 50,
+    }
+    window.localStorage.setItem('knowledge-timeline-progress', JSON.stringify(progress))
+  })
+
+  await page.goto('/')
+
+  // Share section should be visible
+  const shareSection = page.locator('[aria-label="Share and invite"]')
+  await expect(shareSection).toBeVisible()
+
+  // Should mention mastery achievement
+  await expect(shareSection.getByText(/mastered/i)).toBeVisible()
+
+  // Copy link and snapshot buttons should be present
+  await expect(shareSection.getByLabel('Copy pack link to clipboard')).toBeVisible()
+  await expect(shareSection.getByLabel('Export progress as shareable image')).toBeVisible()
+})
+
+test('share invite section is hidden for new users', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.clear()
+  })
+
+  await page.goto('/')
+
+  // Share section should NOT be present for new users
+  await expect(page.locator('[aria-label="Share and invite"]')).toHaveCount(0)
+})
